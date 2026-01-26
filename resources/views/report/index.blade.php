@@ -52,7 +52,7 @@
     <div class="row g-3 mb-3">
         <div class="col-md-4">
             <div class="report-card">
-                <div class="report-title">Overdue / Penbvgfdgding / In Progress</div>
+                <div class="report-title">Overdue / Pending / In Progress</div>
                 <canvas id="chart1"></canvas>
             </div>
         </div>
