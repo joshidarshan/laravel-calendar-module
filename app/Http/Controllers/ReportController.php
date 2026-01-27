@@ -7,82 +7,112 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-
-    public function index(Request $request)
+    public function table(Request $request)
     {
-        $filter = $request->get('filter', 'today');
+        $range = $this->getDateRange($request);
+        $employeeWise = $this->getEmployeeData($range['from'], $range['to']);
 
-        if ($filter === 'today') {
-            $from = Carbon::today();
-            $to   = Carbon::today()->endOfDay();
-        } elseif ($filter === 'month') {
-            $from = Carbon::now()->startOfMonth();
-            $to   = Carbon::now()->endOfMonth();
-        } elseif ($filter === 'custom') {
-            $from = Carbon::parse($request->from);
-            $to   = Carbon::parse($request->to);
+        return view('report.report-table', compact(
+            'employeeWise'
+        ) + $range);
+    }
+
+    public function charts(Request $request)
+    {
+        $range = $this->getDateRange($request);
+        $employeeBar = $this->getEmployeeData($range['from'], $range['to']);
+
+        $summary = [
+            'completed'    => array_sum(array_column($employeeBar, 'completed')),
+            'pending'      => array_sum(array_column($employeeBar, 'pending')),
+            'overdue'      => array_sum(array_column($employeeBar, 'overdue')),
+            'in_progress'  => array_sum(array_column($employeeBar, 'in_progress')),
+            'delayed'      => array_sum(array_column($employeeBar, 'delayed')),
+        ];
+
+        $summary['not_completed'] =
+            $summary['pending'] +
+            $summary['overdue'] +
+            $summary['in_progress'];
+
+        $summary['in_time'] = $summary['completed'];
+
+        $categoryBar = [
+            'completed'   => $summary['completed'],
+            'pending'     => $summary['pending'],
+            'overdue'     => $summary['overdue'],
+            'in_progress' => $summary['in_progress'],
+        ];
+
+        return view('report.report-charts', compact(
+            'summary',
+            'employeeBar',
+            'categoryBar'
+        ) + $range);
+    }
+
+    /* =========================
+       DATE RANGE HANDLER
+    ========================= */
+    private function getDateRange(Request $request)
+    {
+        $filter = $request->filter ?? 'all';
+        $from = $to = $label = null;
+
+        try {
+
+            if ($filter === 'day' && $request->date) {
+                $date = Carbon::parse($request->date);
+                $from = $date->copy()->startOfDay();
+                $to   = $date->copy()->endOfDay();
+                $label = $date->format('d M Y');
+            }
+
+            elseif ($filter === 'week' && $request->week) {
+                $weekDate = Carbon::parse($request->week);
+                $from = $weekDate->copy()->startOfWeek(Carbon::MONDAY);
+                $to   = $weekDate->copy()->endOfWeek(Carbon::SUNDAY);
+                $label = 'Week: ' . $from->format('d M') . ' - ' . $to->format('d M Y');
+            }
+
+            elseif ($filter === 'month' && $request->month) {
+                $month = Carbon::parse($request->month);
+                $from = $month->copy()->startOfMonth();
+                $to   = $month->copy()->endOfMonth();
+                $label = $month->format('F Y');
+            }
+
+        } catch (\Exception $e) {
+            $filter = 'all';
         }
 
-        // 🔹 Static data (later DB query)
-        $summary = [
-            'overdue'       => 680,
-            'pending'       => 33,
-            'in_progress'   => 1,
-            'completed'     => 12144,
-            'not_completed' => 714,
-            'in_time'       => 7396,
-            'delayed'       => 4748,
+        return compact('filter', 'from', 'to', 'label');
+    }
+
+    /* =========================
+       MOCK DATA (TEMP)
+    ========================= */
+    private function getEmployeeData($from = null, $to = null)
+    {
+        $data = [
+            ['name'=>'Het Ladani','completed'=>5,'pending'=>2,'overdue'=>1,'in_progress'=>3,'delayed'=>0,'date'=>'2026-01-03'],
+            ['name'=>'Rudra Chabhadiya','completed'=>8,'pending'=>1,'overdue'=>0,'in_progress'=>2,'delayed'=>1,'date'=>'2026-06-26'],
+            ['name'=>'Dhruv Solanki','completed'=>7,'pending'=>3,'overdue'=>2,'in_progress'=>1,'delayed'=>0,'date'=>'2026-01-25'],
+            ['name'=>'Rahul Parihar','completed'=>6,'pending'=>2,'overdue'=>1,'in_progress'=>1,'delayed'=>1,'date'=>'2026-01-27'],
+            ['name'=>'Yashmit Vithalani','completed'=>10,'pending'=>1,'overdue'=>0,'in_progress'=>0,'delayed'=>0,'date'=>'2026-01-27'],
+            ['name'=>'Darshan Joshi','completed'=>4,'pending'=>3,'overdue'=>2,'in_progress'=>2,'delayed'=>1,'date'=>'2026-01-26'],
+            ['name'=>'Kritika Patel','completed'=>9,'pending'=>0,'overdue'=>1,'in_progress'=>1,'delayed'=>0,'date'=>'2026-01-27'],
+            ['name'=>'Nirav Mehta','completed'=>3,'pending'=>4,'overdue'=>2,'in_progress'=>2,'delayed'=>1,'date'=>'2026-01-25'],
+            ['name'=>'Priya Sharma','completed'=>7,'pending'=>2,'overdue'=>1,'in_progress'=>2,'delayed'=>0,'date'=>'2026-01-27'],
+            ['name'=>'Amit Desai','completed'=>6,'pending'=>1,'overdue'=>0,'in_progress'=>3,'delayed'=>0,'date'=>'2026-01-26'],
         ];
 
-        $employeeWise = [
-            ['name' => 'JAY Lende', 'completed' => 571, 'pending' => 34],
-            ['name' => 'Darshan Joshi', 'completed' => 526, 'pending' => 3],
-            ['name' => 'MAN Kaushik', 'completed' => 473, 'pending' => 50],
-            ['name' => 'Om Shishodia', 'completed' => 420, 'pending' => 15],
-        ];
+        if ($from && $to) {
+            $data = array_filter($data, function ($emp) use ($from, $to) {
+                return Carbon::parse($emp['date'])->between($from, $to);
+            });
+        }
 
-        return view('report.index', compact(
-            'summary',
-            'employeeWise',
-            'filter',
-            'from',
-            'to'
-        ));
-    }
-
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return array_values($data);
     }
 }

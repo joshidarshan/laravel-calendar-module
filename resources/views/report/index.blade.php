@@ -152,4 +152,26 @@
         }
     });
 </script>
+<script>
+function openDay() {
+    document.getElementById('dayPicker').click();
+}
+
+function submitDay(date) {
+    if(date){
+        window.location.href = `?filter=day&date=${date}`;
+    }
+}
+
+function openMonth() {
+    document.getElementById('monthPicker').click();
+}
+
+function submitMonth(month) {
+    if(month){
+        window.location.href = `?filter=month&month=${month}`;
+    }
+}
+</script>
+
 @endpush

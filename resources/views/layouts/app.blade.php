@@ -163,7 +163,7 @@
             <i class="bi bi-calendar-event"></i>
             <span>Calendar</span>
         </a>
-        <a href="{{ route('report.index') }}" class="{{ request()->routeIs('report.index') ? 'active' : '' }}">
+        <a href="{{ route('report.table') }}" class="{{ request()->routeIs('report.index') ? 'active' : '' }}">
             <i class="bi bi-file-earmark-text"></i>
             <span>Report</span>
         </a>
