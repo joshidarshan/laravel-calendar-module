@@ -37,7 +37,7 @@
 
         .topbar {
             height: 60px;
-            background: #4f46e5;
+            background: linear-gradient(135deg, #4f46e5, #f9fffe);
             color: #fff;
             position: fixed;
             top: 0;
@@ -148,10 +148,23 @@
 <body>
 
     <!-- TOPBAR -->
-    <div class="topbar">
+    <!-- TOPBAR -->
+<div class="topbar d-flex justify-content-between align-items-center">
+    <!-- LEFT SIDE -->
+    <div class="d-flex align-items-center gap-3">
         <i class="bi bi-list toggle-btn" id="toggleSidebar"></i>
-        <h5 class="mb-0 fw-semibold"><i class="bi bi-ui-checks-grid me-2"></i> Form Builder</h5>
+        <h5 class="mb-0 fw-semibold">
+            <i class="bi bi-ui-checks-grid me-2"></i>
+            @yield('topbar-title', 'Dashboard')
+        </h5>
     </div>
+
+    <!-- RIGHT SIDE -->
+    <div class="d-flex gap-2">
+        @yield('topbar-buttons')
+    </div>
+</div>
+
 
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
@@ -163,7 +176,7 @@
             <i class="bi bi-calendar-event"></i>
             <span>Calendar</span>
         </a>
-        <a href="{{ route('report.table') }}" class="{{ request()->routeIs('report.index') ? 'active' : '' }}">
+        <a href="{{ route('report.day.table') }}" class="{{ request()->routeIs('report.index') ? 'active' : '' }}">
             <i class="bi bi-file-earmark-text"></i>
             <span>Report</span>
         </a>

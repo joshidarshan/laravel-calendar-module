@@ -1,12 +1,18 @@
 @extends('layouts.app')
+@section('topbar-title', 'Forms')
+@section('topbar-buttons')
+     <button class="btn btn-primary btn-lg rounded-pill" data-bs-toggle="modal" data-bs-target="#createFormModal">
+        <i class="bi bi-plus-circle me-1"></i> New Form
+    </button>
+@endsection
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
+{{-- <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="text-dark">Forms</h2>
     <button class="btn btn-primary btn-lg rounded-pill" data-bs-toggle="modal" data-bs-target="#createFormModal">
         <i class="bi bi-plus-circle me-1"></i> New Form
     </button>
-</div>
+</div> --}}
 
 <div class="card shadow-sm rounded-4 border-0 bg-white">
     <div class="card-body p-3">

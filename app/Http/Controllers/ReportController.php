@@ -7,6 +7,27 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    public function dayTable(Request $request)
+{
+    $date = $request->date
+        ? Carbon::parse($request->date)
+        : Carbon::today();
+
+    $from = $date->copy()->startOfDay();
+    $to   = $date->copy()->endOfDay();
+
+    $employeeWise = $this->getEmployeeData($from, $to);
+
+
+    return view('report.day.table', [
+        'employeeWise' => $employeeWise,
+        'date'         => $date,
+        'prevDate'     => $date->copy()->subDay()->toDateString(),
+        'nextDate'     => $date->copy()->addDay()->toDateString(),
+        'label'        => $date->format('d M Y'),
+    ]);
+}
+
     public function table(Request $request)
     {
         $range = $this->getDateRange($request);
@@ -115,4 +136,43 @@ class ReportController extends Controller
 
         return array_values($data);
     }
+    public function monthTable(Request $request)
+{
+    $month = $request->month
+        ? Carbon::parse($request->month)
+        : Carbon::now();
+
+    $from = $month->copy()->startOfMonth();
+    $to   = $month->copy()->endOfMonth();
+
+    $employeeWise = $this->getEmployeeData($from, $to);
+
+    return view('report.month.table', [
+        'employeeWise' => $employeeWise,
+        'label'        => $month->format('F Y'),
+        'prevMonth'    => $month->copy()->subMonth()->format('Y-m'),
+        'nextMonth'    => $month->copy()->addMonth()->format('Y-m'),
+        'currentMonth' => $month->format('Y-m'),
+    ]);
+}
+public function weekTable(Request $request)
+{
+    $week = $request->week
+        ? Carbon::parse($request->week)
+        : Carbon::now();
+
+    $from = $week->copy()->startOfWeek(Carbon::MONDAY);
+    $to   = $week->copy()->endOfWeek(Carbon::SUNDAY);
+
+    $employeeWise = $this->getEmployeeData($from, $to);
+
+    return view('report.week.table', [
+        'employeeWise' => $employeeWise,
+        'label'        => 'Week: ' . $from->format('d M') . ' - ' . $to->format('d M Y'),
+        'prevWeek'     => $week->copy()->subWeek()->format('Y-m-d'),
+        'nextWeek'     => $week->copy()->addWeek()->format('Y-m-d'),
+    ]);
+}
+
+
 }
