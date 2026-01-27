@@ -48,7 +48,7 @@
         padding: 18px;
         text-align: center;
         box-shadow: 0 10px 25px rgba(0,0,0,.06);
-        transition: transform .2s ease;
+        transition: transform .5s ease;
     }
 
     .summary-card:hover {
