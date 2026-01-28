@@ -11,3 +11,5 @@ Route::put('/calendar/{id}', [CalendarTaskController::class, 'update'])->name('c
 Route::post('/calendar/{id}/complete', [CalendarTaskController::class, 'complete'])->name('calendar.complete');
 Route::post('/calendar/{id}/uncomplete', [CalendarTaskController::class, 'uncomplete'])->name('calendar.uncomplete');
 Route::delete('/calendar/{id}', [CalendarTaskController::class, 'destroy'])->name('calendar.destroy');
+
+    

@@ -1,9 +1,7 @@
 @extends('layouts.app')
 @section('topbar-title', 'Task Calendar')
 @section('topbar-buttons')
-    <div class="d-flex justify-content-between align-items-start mb-3">
-
-
+    <div class="d-flex justify-content-between align-items-start mb-1">
         <div style="min-width:340px; position:relative;">
             <div class="d-flex search-container">
                 <input id="task-search" class="form-control" placeholder="Search tasks by title..." autocomplete="off" />
@@ -107,50 +105,75 @@
             border-radius: 3px;
         }
 
-        /* Search Results */
+        .search-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            position: relative;
+            width: 100%;
+        }
+
+        .search-container #task-search {
+            flex: 1;
+            min-width: 250px;
+            border: 2px solid #e5e7eb !important;
+            transition: all 0.2s ease;
+        }
+
+        .search-container #task-search:focus {
+            border-color: #4f46e5 !important;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
         .search-results {
             position: absolute;
-            top: 42px;
-            /* adjust according to input height */
-            background: #1f2937;
-            /* dark background to match your dark theme */
-            border: 1px solid #374151;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, .08);
             z-index: 50;
-            width: 340px;
-            max-height: 300px;
+            width: 100%;
+            min-width: 320px;
+            max-height: 400px;
             overflow-y: auto;
             border-radius: 8px;
-            color: #f9fafb;
-            font-size: 0.875rem;
+            top: 100%;
+            left: 0;
+            margin-top: 6px;
         }
 
         .search-results .row {
-            padding: 10px 12px;
-            border-bottom: 1px solid #374151;
+            padding: 12px;
+            border-bottom: 1px solid #f3f4f6;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.15s ease;
         }
 
         .search-results .row:hover {
-            background: #4b5563;
+            background: #f3f4f6;
+            padding-left: 16px;
         }
 
         .search-results .row strong {
-            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+            color: #1f2937;
+            font-size: 0.95rem;
         }
 
         .search-results .row small {
-            color: #9ca3af;
-            margin-left: 6px;
+            display: inline-block;
+            background: #e5e7eb;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 8px;
         }
 
-        .search-results .row .next-occurrence {
-            font-size: 0.8rem;
-            color: #d1d5db;
-            margin-top: 2px;
+        .search-results .row-meta {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 6px;
         }
-
 
         /* .completed { text-decoration:line-through !important; opacity:0.85; background:#9CA3AF !important; } */
         /* Completed task style */
@@ -200,7 +223,7 @@
             const csrf = tokenEl ? tokenEl.content : '';
             const searchInput = document.getElementById('task-search');
             const resultsBox = document.getElementById('search-results');
-            const refreshBtn = document.getElementById('refresh-btn');
+            const refreshBtn = document.getElementById('refresh-btn') || { addEventListener: () => {} };
 
             // debounce helper
             function debounce(fn, delay = 300) {
@@ -588,19 +611,32 @@
                 fetch(`{{ route('calendar.search') }}?q=${encodeURIComponent(q)}`, {
                         method: 'GET'
                     })
-                    .then(r => r.json()).then(json => {
+                    .then(r => {
+                        if (!r.ok) throw new Error('Search failed');
+                        return r.json();
+                    })
+                    .then(json => {
                         resultsBox.innerHTML = '';
-                        if (!json.length) {
+                        if (!json || !json.length) {
                             const no = document.createElement('div');
                             no.className = 'row';
+                            no.style.padding = '12px';
+                            no.style.textAlign = 'center';
+                            no.style.color = '#9ca3af';
                             no.innerText = 'No tasks found';
                             resultsBox.appendChild(no);
                         } else {
                             json.forEach(item => {
                                 const row = document.createElement('div');
                                 row.className = 'row';
-                                row.innerHTML =
-                                    `<div><strong>${escapeHtml(item.title)}</strong> <small class="text-muted">(${escapeHtml(item.task_type)})</small><div style="font-size:0.85rem; color:#6b7280">${item.next_occurrence ? 'Next: '+ new Date(item.next_occurrence).toLocaleString() : 'No upcoming occurrence'}</div></div>`;
+                                const nextOcc = item.next_occurrence 
+                                    ? new Date(item.next_occurrence).toLocaleString() 
+                                    : 'No upcoming';
+                                row.innerHTML = `
+                                    <strong>${escapeHtml(item.title)}</strong>
+                                    <small>${escapeHtml(item.task_type)}</small>
+                                    <div class="row-meta">Next: ${nextOcc}</div>
+                                `;
                                 row.addEventListener('click', () => {
                                     resultsBox.style.display = 'none';
                                     searchInput.value = '';
@@ -610,21 +646,14 @@
                                         calendar.gotoDate(date);
                                         calendar.refetchEvents();
 
-                                        // Wait a tiny bit for events to render, then trigger eventClick
                                         setTimeout(() => {
-                                            const allEvents = calendar
-                                                .getEvents();
-                                            const evt = allEvents.find(e => {
-                                                return e.id == item
-                                                    .id &&
-                                                    new Date(e.start)
-                                                    .toDateString() ===
-                                                    date.toDateString();
-                                            });
-                                            if (evt) calendar.trigger(
-                                                'eventClick', {
-                                                    event: evt
-                                                });
+                                            const evt = calendar.getEvents()
+                                                .find(e => e.id == item.id && 
+                                                    new Date(e.start).toDateString() === date.toDateString());
+
+                                            if (evt) {
+                                                evt.setProp('backgroundColor', '#ef4444');
+                                            }
                                         }, 200);
                                     } else {
                                         calendar.refetchEvents();
@@ -634,6 +663,11 @@
                                 resultsBox.appendChild(row);
                             });
                         }
+                        resultsBox.style.display = 'block';
+                    })
+                    .catch(err => {
+                        console.error('Search error:', err);
+                        resultsBox.innerHTML = '<div class="row" style="padding:12px; color:#dc2626;">Error loading results</div>';
                         resultsBox.style.display = 'block';
                     });
             }, 300);

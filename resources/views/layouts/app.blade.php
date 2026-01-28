@@ -160,7 +160,7 @@
     </div>
 
     <!-- RIGHT SIDE -->
-    <div class="d-flex >
+    <div class="d-flex gap">
         @yield('topbar-buttons')
     </div>
 </div>
@@ -172,11 +172,16 @@
             <i class="bi bi-house"></i>
             <span>Dashboard</span>
         </a>
-        <a href="{{ route('calendar.index') }}">
+        <a href="{{ route('calendar.index') }}" class="{{ request()->routeIs('calendar.index') ? 'active' : '' }}">
             <i class="bi bi-calendar-event"></i>
             <span>Calendar</span>
         </a>
-        <a href="{{ route('report.table') }}" class="{{ request()->routeIs('report.index') ? 'active' : '' }}">
+        
+        <a href="{{ route('assignments.dashboard') }}" class="{{ request()->routeIs('assignments.dashboard') ? 'active' : '' }}">
+            <i class="bi bi-graph-up"></i>
+            <span>Task</span>
+        </a>
+        <a href="{{ route('report.table') }}" class="{{ request()->routeIs('report.table') ? 'active' : '' }}">
             <i class="bi bi-file-earmark-text"></i>
             <span>Report</span>
         </a>

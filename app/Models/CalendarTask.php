@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
 
 class CalendarTask extends Model
@@ -15,7 +17,9 @@ class CalendarTask extends Model
         'repeat_type',
         'start_date',
         'repeat_end_date',
-        'completed_occurrences'
+        'completed_occurrences',
+        'user_id',
+        'assigned_to'
     ];
 
     protected $casts = [
@@ -24,6 +28,22 @@ class CalendarTask extends Model
         'repeat_end_date' => 'date',
         'completed_occurrences' => 'array',
     ];
+
+    /**
+     * Get the user that owns this task
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get assignments for this task
+     */
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(TaskAssignment::class, 'calendar_task_id');
+    }
 
     // Static colors per type
     public function getColorAttribute()

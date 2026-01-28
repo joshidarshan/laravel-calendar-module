@@ -14,65 +14,6 @@ class CalendarTaskController extends Controller
         return view('calendar.index');
     }
 
-    /**
-     * FullCalendar events API
-     * Uses calendar visible range (start & end)
-     */
-
-// search?next_occurrence_after=YYYY-MM-DD
-
-public function search(Request $request)
-{
-    $q = trim($request->q);
-
-    if (!$q) {
-        return response()->json([]);
-    }
-
-    $tasks = CalendarTask::where('title', 'LIKE', "%{$q}%")
-        ->orderBy('task_datetime')
-        ->limit(10)
-        ->get();
-
-    $results = [];
-
-    foreach ($tasks as $task) {
-
-        // Find next occurrence (important for repeating tasks)
-        $nextOccurrence = $task->task_datetime;
-
-        if ($task->repeat_type !== 'none') {
-            $now = now();
-
-            if ($task->repeat_type === 'daily') {
-                $nextOccurrence = $now->copy()->setTimeFrom($task->task_datetime);
-            }
-            elseif ($task->repeat_type === 'weekly') {
-                $nextOccurrence = $now->next($task->task_datetime->dayOfWeek)
-                    ->setTimeFrom($task->task_datetime);
-            }
-            elseif ($task->repeat_type === 'monthly') {
-                $nextOccurrence = $now->copy()
-                    ->addMonthNoOverflow()
-                    ->setDay($task->task_datetime->day)
-                    ->setTimeFrom($task->task_datetime);
-            }
-        }
-
-        $results[] = [
-            'id'              => $task->id,
-            'title'           => $task->title,
-            'task_type'       => $task->task_type,
-            'next_occurrence' => $nextOccurrence
-                ? $nextOccurrence->toDateTimeString()
-                : null,
-        ];
-    }
-
-    return response()->json($results);
-}
-
-
     public function events(Request $request)
     {
         $start = Carbon::parse($request->start);
@@ -274,4 +215,5 @@ public function search(Request $request)
         CalendarTask::findOrFail($id)->delete();
         return response()->json(['success' => true]);
     }
+    
 }

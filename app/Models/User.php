@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -45,4 +46,31 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get assignments for this user
+     */
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(TaskAssignment::class, 'assigned_to_user_id');
+    }
+
+    /**
+     * Get pending assignments
+     */
+    public function assignmentsInProgress(): HasMany
+    {
+        return $this->hasMany(TaskAssignment::class, 'assigned_to_user_id')
+            ->where('status', 'in_progress');
+    }
+
+    /**
+     * Get completed assignments
+     */
+    public function assignmentsCompleted(): HasMany
+    {
+        return $this->hasMany(TaskAssignment::class, 'assigned_to_user_id')
+            ->where('status', 'completed');
+    }
 }
+

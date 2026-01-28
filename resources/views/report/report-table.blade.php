@@ -38,27 +38,26 @@
 </div>
 
 @endsection
+
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-/* ================= STATE ================= */
-let filter = 'all';   // ✅ DEFAULT ALL
+let filter = 'day';
 let param  = null;
 let view   = 'table';
 
 /* ================= TABLE ================= */
 const table = $('#reportTable').DataTable({
     serverSide: true,
-    processing: true,
     ajax: {
         url: "{{ route('report.data') }}",
         data: d => {
             d.filter = filter;
-            if (param) {
-                if (filter === 'day')   d.date  = param;
-                if (filter === 'week')  d.week  = param;
-                if (filter === 'month') d.month = param;
+            if(param){
+                if(filter==='day') d.date = param;
+                if(filter==='week') d.week = param;
+                if(filter==='month') d.month = param;
             }
         }
     },
@@ -76,7 +75,7 @@ const table = $('#reportTable').DataTable({
 
 table.on('xhr', () => {
     const j = table.ajax.json();
-    $('#reportLabel').text(j.label ?? '');
+    $('#reportLabel').text(j.label);
     updateNav(j.prev, j.next);
 });
 
@@ -85,20 +84,17 @@ const chart = new Chart(document.getElementById('reportChart'), {
     type:'bar',
     data:{
         labels:['Completed','Pending','Overdue','In Progress','Delayed'],
-        datasets:[{
-            data:[],
-            backgroundColor:['#28a745','#ffc107','#dc3545','#0dcaf0','#6c757d']
-        }]
+        datasets:[{data:[], backgroundColor:['#28a745','#ffc107','#dc3545','#0dcaf0','#6c757d']}]
     }
 });
 
 function loadChart(){
     $.get("{{ route('report.chart.data') }}", {
         filter: filter,
-        date: filter==='day' ? param : null,
-        week: filter==='week' ? param : null,
-        month: filter==='month' ? param : null
-    }, r => {
+        date: filter==='day'?param:null,
+        week: filter==='week'?param:null,
+        month: filter==='month'?param:null
+    }, r=>{
         chart.data.datasets[0].data = [
             r.summary.completed,
             r.summary.pending,
@@ -112,58 +108,29 @@ function loadChart(){
     });
 }
 
-
 /* ================= NAV ================= */
 function updateNav(prev,next){
     $('#prevBtn').data('value',prev).prop('disabled',!prev||filter==='all');
     $('#nextBtn').data('value',next).prop('disabled',!next||filter==='all');
 }
 
-$('#prevBtn').click(()=>{
-    param=$('#prevBtn').data('value');
-    view==='table'?table.ajax.reload():loadChart();
-});
-
-$('#nextBtn').click(()=>{
-    param=$('#nextBtn').data('value');
-    view==='table'?table.ajax.reload():loadChart();
-});
+$('#prevBtn').click(()=>{ param=$('#prevBtn').data('value'); view==='table'?table.ajax.reload():loadChart();});
+$('#nextBtn').click(()=>{ param=$('#nextBtn').data('value'); view==='table'?table.ajax.reload():loadChart();});
 
 /* ================= FILTER ================= */
 $('.filter-btn').click(function(){
-    $('.filter-btn').removeClass('btn-primary active')
-        .addClass('btn-outline-primary');
-
-    $(this).addClass('btn-primary active')
-        .removeClass('btn-outline-primary');
-
-    filter = $(this).data('filter');
-    param  = null;
-
-    view === 'table'
-        ? table.ajax.reload()
-        : loadChart();
+    $('.filter-btn').removeClass('btn-primary active').addClass('btn-outline-primary');
+    $(this).addClass('btn-primary active').removeClass('btn-outline-primary');
+    filter=$(this).data('filter');
+    param=null;
+    view==='table'?table.ajax.reload():loadChart();
 });
-
 
 /* ================= VIEW TOGGLE ================= */
-$('.bi-table').closest('a').click(e=>{
-    e.preventDefault();
-    view='table';
-    $('#chartView').addClass('d-none');
-    $('#tableView').removeClass('d-none');
-    table.ajax.reload();
-});
+$('#btnTable').click(e=>{e.preventDefault();view='table';$('#chartView').addClass('d-none');$('#tableView').removeClass('d-none');table.ajax.reload();});
+$('#btnChart').click(e=>{e.preventDefault();view='chart';$('#tableView').addClass('d-none');$('#chartView').removeClass('d-none');loadChart();});
 
-$('.bi-bar-chart').closest('a').click(e=>{
-    e.preventDefault();
-    view='chart';
-    $('#tableView').addClass('d-none');
-    $('#chartView').removeClass('d-none');
-    loadChart();
-});
-
-/* ================= INIT ================= */
+/* INIT */
 table.ajax.reload();
 </script>
 @endpush

@@ -63,3 +63,8 @@ Route::delete('/entries/{entry}', [FormEntryController::class,'destroy']);
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/forms/ajax/search', [FormController::class, 'ajaxSearch'])->name('forms.ajax.search');
+
+// ---------------------------
+// ASSIGNMENTS
+// ---------------------------
+require __DIR__.'/assignments.php';

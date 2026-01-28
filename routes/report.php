@@ -11,3 +11,9 @@ Route::get('/report/data', [ReportController::class, 'data'])
 
 Route::get('/report/chart-data', [ReportController::class, 'chartData'])
     ->name('report.chart.data');
+// Route::get('report', [ReportController::class, 'index'])->name('report.index');
+// Route::get('report/data', [ReportController::class, 'data'])->name('report.data');
+// Route::get('report/chart-data', [ReportController::class, 'chartData'])->name('report.chart.data');
+
+// Route::post('employee-task', [EmployeeTaskController::class, 'store'])->name('employee-task.store');
+// Route::put('employee-task/{task}', [EmployeeTaskController::class, 'update'])->name('employee-task.update');
