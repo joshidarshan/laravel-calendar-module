@@ -1,5 +1,18 @@
 @extends('layouts.app')
 @section('topbar-title', 'Task Calendar')
+@section('topbar-buttons')
+    <div class="d-flex justify-content-between align-items-start mb-3">
+
+
+        <div style="min-width:340px; position:relative;">
+            <div class="d-flex search-container">
+                <input id="task-search" class="form-control" placeholder="Search tasks by title..." autocomplete="off" />
+            </div>
+            <div id="search-results" class="search-results" style="display:none;"></div>
+        </div>
+    </div>
+@endsection
+
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
     <style>
@@ -94,33 +107,50 @@
             border-radius: 3px;
         }
 
-        .search-container {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
+        /* Search Results */
         .search-results {
             position: absolute;
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
+            top: 42px;
+            /* adjust according to input height */
+            background: #1f2937;
+            /* dark background to match your dark theme */
+            border: 1px solid #374151;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
             z-index: 50;
-            width: 320px;
+            width: 340px;
             max-height: 300px;
-            overflow: auto;
+            overflow-y: auto;
             border-radius: 8px;
+            color: #f9fafb;
+            font-size: 0.875rem;
         }
 
         .search-results .row {
-            padding: 8px;
-            border-bottom: 1px solid #f3f4f6;
+            padding: 10px 12px;
+            border-bottom: 1px solid #374151;
             cursor: pointer;
+            transition: background 0.2s;
         }
 
         .search-results .row:hover {
-            background: #f8fafc;
+            background: #4b5563;
         }
+
+        .search-results .row strong {
+            font-weight: 600;
+        }
+
+        .search-results .row small {
+            color: #9ca3af;
+            margin-left: 6px;
+        }
+
+        .search-results .row .next-occurrence {
+            font-size: 0.8rem;
+            color: #d1d5db;
+            margin-top: 2px;
+        }
+
 
         /* .completed { text-decoration:line-through !important; opacity:0.85; background:#9CA3AF !important; } */
         /* Completed task style */
@@ -141,21 +171,6 @@
 
 @section('content')
     <div class="container-fluid">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-                <h5 class="fw-semibold"><i class="bi bi-calendar-event me-2"></i> Task Calendar</h5>
-                <div class="text-muted">Add tasks and manage occurrences. Search tasks to jump to their next occurrence.
-                </div>
-            </div>
-
-            <div style="min-width:340px; position:relative;">
-                <div class="d-flex search-container">
-                    <input id="task-search" class="form-control" placeholder="Search tasks by title..." autocomplete="off" />
-                    <button id="refresh-btn" class="btn btn-outline-secondary">Refresh</button>
-                </div>
-                <div id="search-results" class="search-results" style="display:none;"></div>
-            </div>
-        </div>
 
         <div class="legend mb-2" title="Legend">
             <div class="item">
@@ -221,11 +236,11 @@
                 },
 
                 dateClick(info) {
-    const defaultStart = info.dateStr;
+                    const defaultStart = info.dateStr;
 
-    Swal.fire({
-        title: 'Add Task / Event',
-        html: `
+                    Swal.fire({
+                        title: 'Add Task / Event',
+                        html: `
 <div style="display:flex; flex-direction:column; gap:12px; font-family:sans-serif;">
 
   <!-- Title -->
@@ -283,44 +298,46 @@
 
 </div>
         `,
-        confirmButtonText: 'Save',
-        showCancelButton: true,
-        focusConfirm: false,
-        customClass: {
-            popup: 'swal2-popup-modern'
-        },
-        preConfirm: () => ({
-            title: document.getElementById('title').value.trim(),
-            description: document.getElementById('description').value.trim(),
-            task_type: document.getElementById('type').value,
-            repeat_type: document.getElementById('repeat').value,
-            task_time: document.getElementById('time').value,
-            start_date: document.getElementById('start_date').value,
-            repeat_end_date: document.getElementById('repeat_end_date').value
-        })
-    }).then(result => {
-        if (!result.isConfirmed) return;
-        const dt = info.dateStr + ' ' + result.value.task_time;
-        fetch("{{ route('calendar.store') }}", {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrf,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                title: result.value.title,
-                description: result.value.description,
-                task_type: result.value.task_type,
-                repeat_type: result.value.repeat_type,
-                task_datetime: dt,
-                start_date: result.value.start_date || info.dateStr,
-                repeat_end_date: result.value.repeat_end_date || null
-            })
-        }).then(() => calendar.refetchEvents());
-    });
-}
-,
+                        confirmButtonText: 'Save',
+                        showCancelButton: true,
+                        focusConfirm: false,
+                        customClass: {
+                            popup: 'swal2-popup-modern'
+                        },
+                        preConfirm: () => ({
+                            title: document.getElementById('title').value.trim(),
+                            description: document.getElementById('description').value
+                            .trim(),
+                            task_type: document.getElementById('type').value,
+                            repeat_type: document.getElementById('repeat').value,
+                            task_time: document.getElementById('time').value,
+                            start_date: document.getElementById('start_date').value,
+                            repeat_end_date: document.getElementById('repeat_end_date')
+                                .value
+                        })
+                    }).then(result => {
+                        if (!result.isConfirmed) return;
+                        const dt = info.dateStr + ' ' + result.value.task_time;
+                        fetch("{{ route('calendar.store') }}", {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrf,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                title: result.value.title,
+                                description: result.value.description,
+                                task_type: result.value.task_type,
+                                repeat_type: result.value.repeat_type,
+                                task_datetime: dt,
+                                start_date: result.value.start_date || info.dateStr,
+                                repeat_end_date: result.value.repeat_end_date ||
+                                    null
+                            })
+                        }).then(() => calendar.refetchEvents());
+                    });
+                },
 
                 eventClick(info) {
                     const evt = info.event;
@@ -587,13 +604,33 @@
                                 row.addEventListener('click', () => {
                                     resultsBox.style.display = 'none';
                                     searchInput.value = '';
+
                                     if (item.next_occurrence) {
-                                        calendar.gotoDate(item.next_occurrence);
+                                        const date = new Date(item.next_occurrence);
+                                        calendar.gotoDate(date);
                                         calendar.refetchEvents();
+
+                                        // Wait a tiny bit for events to render, then trigger eventClick
+                                        setTimeout(() => {
+                                            const allEvents = calendar
+                                                .getEvents();
+                                            const evt = allEvents.find(e => {
+                                                return e.id == item
+                                                    .id &&
+                                                    new Date(e.start)
+                                                    .toDateString() ===
+                                                    date.toDateString();
+                                            });
+                                            if (evt) calendar.trigger(
+                                                'eventClick', {
+                                                    event: evt
+                                                });
+                                        }, 200);
                                     } else {
                                         calendar.refetchEvents();
                                     }
                                 });
+
                                 resultsBox.appendChild(row);
                             });
                         }

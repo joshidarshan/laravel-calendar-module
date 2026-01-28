@@ -1,6 +1,8 @@
 @extends('layouts.app')
 @section('topbar-title', 'Forms')
 @section('topbar-buttons')
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+
      <button class="btn btn-primary btn-lg rounded-pill" data-bs-toggle="modal" data-bs-target="#createFormModal">
         <i class="bi bi-plus-circle me-1"></i> New Form
     </button>

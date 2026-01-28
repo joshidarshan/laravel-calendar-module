@@ -1,25 +1,27 @@
-<div class="filter-bar d-flex justify-content-end mb-3">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- TOP RIGHT : DAY / WEEK / MONTH / ALL -->
-    <div class="btn-group">
-        <a href="{{ route('report.day.table') }}"
-           class="btn {{ request()->is('report/day/*') ? 'btn-primary' : 'btn-outline-primary' }}">
-            Day
+<style>
+.filter-group, .view-group {
+    padding-left: 20px;
+    padding-top: 14px;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+    <div class="btn-group filter-group">
+        <button class="btn btn-primary filter-btn active" data-filter="day">Day</button>
+        <button class="btn btn-outline-primary filter-btn" data-filter="week">Week</button>
+        <button class="btn btn-outline-primary filter-btn" data-filter="month">Month</button>
+        <button class="btn btn-outline-secondary filter-btn" data-filter="all">All</button>
+    </div>
+
+    <div class="btn-group view-group">
+        <a href="#" class="btn btn-outline-dark" id="btnTable">
+            <i class="bi bi-table"></i>
         </a>
-
-        <a href="{{ route('report.week.table') }}"
-           class="btn {{ request()->is('report/week/*') ? 'btn-primary' : 'btn-outline-primary' }}">
-            Week
-        </a>
-
-        <a href="{{ route('report.month.table') }}"
-           class="btn {{ request()->is('report/month/*') ? 'btn-primary' : 'btn-outline-primary' }}">
-            Month
-        </a>
-
-        <a href="{{ route('report.all.table') }}"
-           class="btn {{ request()->is('report/all/*') ? 'btn-primary' : 'btn-outline-secondary' }}">
-            All
+        <a href="#" class="btn btn-outline-dark" id="btnChart">
+            <i class="bi bi-bar-chart"></i>
         </a>
     </div>
 
