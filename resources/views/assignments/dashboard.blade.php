@@ -6,9 +6,9 @@
     <a href="{{ route('assignments.create') }}" class="btn btn-primary btn-sm rounded-pill me-2">
         <i class="fas fa-plus"></i> New Assignment
     </a>
-    <a href="{{ route('assignments.index') }}" class="btn btn-secondary btn-sm rounded-pill">
+    {{-- <a href="{{ route('assignments.index') }}" class="btn btn-secondary btn-sm rounded-pill">
         <i class="fas fa-list"></i> All Assignments
-    </a>
+    </a> --}}
 @endsection
 
 @section('content')
@@ -43,7 +43,7 @@
 
     <div class="row">
         <!-- Recent Assignments -->
-        <div class="col-lg-8 mb-4">
+        {{-- <div class="col-lg-8 mb-4">
             <div class="card shadow-sm rounded-3">
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Recent Assignments</h5>
@@ -90,10 +90,25 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> --}}
+<table id="recentTable" class="table table-hover mb-0 align-middle w-100">
+    <thead class="table-light">
+        <tr>
+            <th>Task</th>
+            <th>Assigned To</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Progress</th>
+            <th>Estimated Hours</th> <!-- New -->
+            <th>Actual Hours</th>    <!-- New -->
+            <th>Actions</th>
+        </tr>
+    </thead>
+</table>
+
 
         <!-- Team Performance -->
-        <div class="col-lg-4 mb-4">
+        {{-- <div class="col-lg-4 mb-4">
             <div class="card shadow-sm rounded-3">
                 <div class="card-header bg-dark text-white">
                     <h5 class="mb-0">Team Performance</h5>
@@ -123,7 +138,34 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> --}}
     </div>
 </div>
 @endsection
+@push('scripts')
+<script>
+$('#recentTable').DataTable({
+    processing: true,
+    serverSide: true,
+    ajax: "{{ route('assignments.recent.data') }}",
+    columns: [
+        { data: 'task', orderable:false },
+        { data: 'assigned_to' },
+        { data: 'status', orderable:false },
+        { data: 'priority', orderable:false },
+        { data: 'progress', orderable:false },
+        { data: 'estimated_hours', orderable:true }, // New
+        { data: 'actual_hours', orderable:true },    // New
+        { data: 'actions', orderable:false, searchable:false }
+    ],
+    rowCallback: function(row, data){
+        $(row).css('cursor','pointer');
+        $(row).on('click', function(){
+            window.location = '/assignments/' + data.id;
+        });
+    }
+});
+
+
+</script>
+@endpush

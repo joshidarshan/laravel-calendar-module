@@ -3,9 +3,14 @@
 @section('topbar-title', 'Assignment Details')
 
 @section('topbar-buttons')
-    <a href="{{ route('assignments.index') }}" class="btn btn-secondary btn-sm">Back</a>
-    <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">Edit</a>
+    <a href="{{ route('assignments.dashboard') }}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">
+        <i class="fas fa-edit"></i> Edit
+    </a>
 @endsection
+
 
 @section('content')
 <div class="container">

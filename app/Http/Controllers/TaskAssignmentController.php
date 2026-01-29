@@ -6,7 +6,11 @@ use App\Models\TaskAssignment;
 use App\Models\CalendarTask;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
 use Carbon\Carbon;
+use Yajra\DataTables\Facades\DataTables;
+
 
 class TaskAssignmentController extends Controller
 {
@@ -53,6 +57,7 @@ class TaskAssignmentController extends Controller
             'notes' => 'nullable|string',
             'priority' => 'integer|min:0|max:2',
             'estimated_hours' => 'nullable|integer|min:1',
+            'target_date' => 'nullable|date|after_or_equal:today',
         ]);
 
         $validated['assigned_at'] = now();
@@ -90,6 +95,7 @@ class TaskAssignmentController extends Controller
             'estimated_hours' => 'nullable|integer|min:1',
             'actual_hours' => 'nullable|integer|min:1',
             'progress' => 'nullable|numeric|min:0|max:100',
+            'target_date' => 'nullable|date|after_or_equal:today',
         ]);
 
         $assignment->update($validated);
@@ -104,12 +110,15 @@ class TaskAssignmentController extends Controller
     /**
      * Delete assignment
      */
-    public function destroy(TaskAssignment $assignment)
-    {
-        $assignment->delete();
+   public function destroy(TaskAssignment $assignment)
+{
+    $assignment->delete();
 
-        return redirect()->route('assignments.index')->with('success', 'Assignment deleted successfully!');
-    }
+    // Redirect back to dashboard (or index page)
+    return redirect()->route('assignments.dashboard') // 🔹 Use dashboard route
+                     ->with('success', 'Assignment deleted successfully!');
+}
+
 
     /**
      * Start assignment
@@ -240,4 +249,39 @@ class TaskAssignmentController extends Controller
 
         return view('assignments.dashboard', compact('stats', 'recentAssignments', 'userStats'));
     }
+ public function recentData()
+    {
+        $assignments = TaskAssignment::with(['task', 'assignedUser'])->latest();
+
+        return DataTables::of($assignments)
+            ->addColumn('task', fn($a) => '<strong>' . e(Str::limit($a->task->title, 40)) . '</strong>')
+            ->addColumn('assigned_to', fn($a) => e($a->assignedUser->name))
+            ->addColumn('status', function ($a) {
+                $badge = $a->status === 'completed' ? 'bg-success' : ($a->status === 'in_progress' ? 'bg-info' : 'bg-secondary');
+                return '<span class="badge ' . $badge . '">' . ucfirst(str_replace('_', ' ', $a->status)) . '</span>';
+            })
+            ->addColumn('priority', function ($a) {
+                return '<span class="badge rounded-pill" style="background-color: ' . $a->getPriorityColor() . '; color:#fff;">' . $a->getPriorityLabel() . '</span>';
+            })
+            ->addColumn('progress', function ($a) {
+                $color = $a->progress < 50 ? '#f44336' : ($a->progress < 80 ? '#ff9800' : '#4caf50');
+                return '<div class="progress rounded-pill" style="height:18px;">
+                        <div class="progress-bar" role="progressbar" style="width: ' . $a->progress . '%; background-color: ' . $color . ';">' . $a->progress . '%</div>
+                    </div>';
+            })
+            ->addColumn('estimated_hours', fn($a) => $a->estimated_hours ?? '-') // 🔹 New
+            ->addColumn('actual_hours', fn($a) => $a->actual_hours ?? '-')       // 🔹 New
+            ->addColumn('actions', function ($a) {
+                $view   = '<a href="' . route('assignments.show', $a) . '" class="btn btn-sm btn-info me-1">View</a>';
+                $edit   = '<a href="' . route('assignments.edit', $a) . '" class="btn btn-sm btn-warning me-1">Edit</a>';
+                $delete = '<form method="POST" action="' . route('assignments.destroy', $a) . '" style="display:inline-block;">' .
+                    csrf_field() .
+                    method_field('DELETE') .
+                    '<button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(\'Are you sure?\')">Delete</button>' .
+                    '</form>';
+                return $view . $edit . $delete;
+            })
+            ->rawColumns(['task', 'status', 'priority', 'progress', 'actions'])
+            ->make(true);
+    }   
 }

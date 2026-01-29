@@ -3,7 +3,7 @@
 @section('topbar-title', 'Edit Assignment')
 
 @section('topbar-buttons')
-    <a href="{{ route('assignments.index') }}" class="btn btn-secondary btn-sm">Back</a>
+    <a href="{{ url()->previous() }}" class="btn btn-secondary btn-sm">Back</a>
 @endsection
 
 @section('content')

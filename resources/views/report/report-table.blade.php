@@ -62,7 +62,7 @@ const table = $('#reportTable').DataTable({
         }
     },
     columns: [
-        {data:'name',className:'text-start'},
+        {data:'employee',className:'text-start'},
         {data:'total'},
         {data:'score'},
         {data:'overdue'},

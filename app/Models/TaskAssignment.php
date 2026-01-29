@@ -19,7 +19,8 @@ class TaskAssignment extends Model
         'estimated_hours',
         'actual_hours',
         'progress',
-        'attachments'
+        'attachments',
+        'target_date',
     ];
 
     protected $casts = [

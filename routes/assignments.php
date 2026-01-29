@@ -28,4 +28,6 @@ Route::prefix('assignments')->group(function () {
     // API endpoints
     Route::get('/task/{taskId}/assignments', [TaskAssignmentController::class, 'getTaskAssignments']);
     Route::get('/user/{user}/assignments', [TaskAssignmentController::class, 'getUserAssignments']);
+    Route::get('/assignments/recent/data', [TaskAssignmentController::class, 'recentData'])
+    ->name('assignments.recent.data');
 });

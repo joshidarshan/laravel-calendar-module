@@ -7,6 +7,8 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\CalendarTask;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\TaskAssignment;
+
 
 class ReportController extends Controller
 {
@@ -56,7 +58,7 @@ class ReportController extends Controller
                 'pending'     => array_sum(array_column($data, 'pending')),
                 'overdue'     => array_sum(array_column($data, 'overdue')),
                 'in_progress' => array_sum(array_column($data, 'in_progress')),
-                'delayed'     => array_sum(array_column($data, 'delayed')),
+                'delayed'     => array_sum(array_column($data, 'delayed')), 
             ]
         ]);
     }
@@ -113,24 +115,71 @@ class ReportController extends Controller
     return [null, null, 'All Time', null, null];
 }
 
+private function getEmployeeData($from = null, $to = null)
+{
+    $query = TaskAssignment::with('assignedUser');
 
-    private function getEmployeeData($from = null, $to = null)
-    {
-        $data = [
-            ['name'=>'Het Ladani','completed'=>5,'pending'=>2,'overdue'=>1,'in_progress'=>3,'delayed'=>0,'date'=>'2026-05-26'],
-            ['name'=>'Rudra Chabhadiya','completed'=>8,'pending'=>1,'overdue'=>0,'in_progress'=>2,'delayed'=>1,'date'=>'2026-01-27'],
-            ['name'=>'Dhruv Solanki','completed'=>7,'pending'=>3,'overdue'=>2,'in_progress'=>1,'delayed'=>0,'date'=>'2026-01-25'],
-            ['name'=>'Rahul Parihar','completed'=>6,'pending'=>2,'overdue'=>1,'in_progress'=>1,'delayed'=>1,'date'=>'2026-01-27'],
-            ['name'=>'Yashmit Vithalani','completed'=>10,'pending'=>1,'overdue'=>0,'in_progress'=>0,'delayed'=>0,'date'=>'2026-01-27'],
-            ['name'=>'Darshan Joshi','completed'=>4,'pending'=>3,'overdue'=>2,'in_progress'=>2,'delayed'=>1,'date'=>'2026-01-26'],
-        ];
-
-        if ($from && $to) {
-            $data = array_filter($data, fn($e) =>
-                Carbon::parse($e['date'])->between($from, $to)
-            );
-        }
-
-        return array_values($data);
+    // target_date filter
+    if ($from && $to) {
+        $query->whereBetween('target_date', [$from, $to]);
     }
+
+    $assignments = $query->get();
+    $today = Carbon::today();
+
+    return $assignments
+        ->groupBy('assigned_to_user_id')
+        ->map(function ($tasks) use ($today) {
+
+            $user = $tasks->first()->assignedUser;
+
+            $completed  = $tasks->where('status', 'completed')->count();
+            $pending    = $tasks->where('status', 'pending')->count();
+            $inProgress = $tasks->where('status', 'in_progress')->count();
+
+            $overdue = $tasks->filter(fn ($t) =>
+                $t->target_date &&
+                Carbon::parse($t->target_date)->lt($today) &&
+                $t->status !== 'completed'
+            )->count();
+
+            $delayed = $tasks->filter(fn ($t) =>
+                $t->status === 'in_progress' &&
+                $t->target_date &&
+                Carbon::parse($t->target_date)->lt($today)
+            )->count();
+
+            return [
+                'employee'    => $user?->name ?? 'N/A',
+                'completed'   => $completed,
+                'pending'     => $pending,
+                'in_progress' => $inProgress,
+                'overdue'     => $overdue,
+                'delayed'     => $delayed,
+            ];
+        })
+        ->values()
+        ->toArray();
+}
+
+
+    // private function getEmployeeData($from = null, $to = null)
+    // {
+    //     $data = [
+    //         ['name'=>'Het Ladani','completed'=>5,'pending'=>2,'overdue'=>1,'in_progress'=>3,'delayed'=>0,'date'=>'2026-05-26'],
+    //         ['name'=>'Rudra Chabhadiya','completed'=>8,'pending'=>1,'overdue'=>0,'in_progress'=>2,'delayed'=>1,'date'=>'2026-01-27'],
+    //         ['name'=>'Dhruv Solanki','completed'=>7,'pending'=>3,'overdue'=>2,'in_progress'=>1,'delayed'=>0,'date'=>'2026-01-25'],
+    //         ['name'=>'Rahul Parihar','completed'=>6,'pending'=>2,'overdue'=>1,'in_progress'=>1,'delayed'=>1,'date'=>'2026-01-27'],
+    //         ['name'=>'Yashmit Vithalani','completed'=>10,'pending'=>1,'overdue'=>0,'in_progress'=>0,'delayed'=>0,'date'=>'2026-01-27'],
+    //         ['name'=>'Darshan Joshi','completed'=>4,'pending'=>3,'overdue'=>2,'in_progress'=>2,'delayed'=>1,'date'=>'2026-01-26'],
+    //     ];
+
+    //     if ($from && $to) {
+    //         $data = array_filter($data, fn($e) =>
+    //             Carbon::parse($e['date'])->between($from, $to)
+    //         );
+    //     }
+
+    //     return array_values($data);
+    // }
 }
