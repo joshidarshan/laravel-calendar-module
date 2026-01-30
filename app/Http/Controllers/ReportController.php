@@ -17,6 +17,7 @@ class ReportController extends Controller
         return view('report.report-table');
     }
 
+    // DataTable JSON
     public function data(Request $request)
     {
         $filter = $request->filter ?? 'day';
@@ -38,30 +39,45 @@ class ReportController extends Controller
             ->make(true);
     }
 
-    /**
-     * Chart data: summary + employee arrays + category arrays
-     */
+    // Chart JSON
     public function chartData(Request $request)
     {
         $filter = $request->filter ?? 'day';
         [$from, $to, $label, $prev, $next] = $this->resolveRange($filter, $request);
 
         $assignTable = (new TaskAssignment())->getTable();
-
-        // Employee aggregation (group by assigned_to_user_id, status)
-        $assignRows = DB::table($assignTable)
-            ->select('assigned_to_user_id', 'status', DB::raw('count(*) as cnt'))
-            ->when($from && $to, fn($q) => $q->whereBetween('target_date', [$from, $to]))
-            ->groupBy('assigned_to_user_id', 'status')
-            ->get();
-
+        $today = Carbon::today();
         $userMap = [];
         $userIds = [];
+
+        $assignRows = DB::table($assignTable)
+            ->select('assigned_to_user_id', 'status', 'target_date', DB::raw('count(*) as cnt'))
+            ->when($from && $to, fn($q) => $q->whereBetween('target_date', [$from, $to]))
+            ->groupBy('assigned_to_user_id', 'status', 'target_date')
+            ->get();
+
         foreach ($assignRows as $r) {
             $uid = $r->assigned_to_user_id ?? 0;
             $userIds[] = $uid;
-            $userMap[$uid][$r->status] = (int)$r->cnt;
+
+            // 🔹 Overdue only
+            if ($r->status !== 'completed' && Carbon::parse($r->target_date)->lt($today)) {
+                $userMap[$uid]['overdue'] = ($userMap[$uid]['overdue'] ?? 0) + (int)$r->cnt;
+                $userMap[$uid]['delayed'] = ($userMap[$uid]['delayed'] ?? 0) + (int)$r->cnt; // chart uses delayed
+            }
+            // 🔹 Pending / In Progress (exclude overdue)
+            elseif ($r->status === 'pending') {
+                $userMap[$uid]['pending'] = ($userMap[$uid]['pending'] ?? 0) + (int)$r->cnt;
+            } elseif ($r->status === 'in_progress') {
+                $userMap[$uid]['in_progress'] = ($userMap[$uid]['in_progress'] ?? 0) + (int)$r->cnt;
+            }
+
+            // 🔹 Completed
+            if ($r->status === 'completed') {
+                $userMap[$uid]['completed'] = ($userMap[$uid]['completed'] ?? 0) + (int)$r->cnt;
+            }
         }
+
         $userIds = array_values(array_unique($userIds));
         $users = $userIds ? User::whereIn('id', $userIds)->pluck('name', 'id')->toArray() : [];
 
@@ -71,14 +87,16 @@ class ReportController extends Controller
                 'label' => $users[$uid] ?? 'N/A',
                 'completed' => $userMap[$uid]['completed'] ?? 0,
                 'pending' => $userMap[$uid]['pending'] ?? 0,
-                'overdue' => $userMap[$uid]['overdue'] ?? 0,
                 'in_progress' => $userMap[$uid]['in_progress'] ?? 0,
+                'overdue' => $userMap[$uid]['overdue'] ?? 0,
                 'delayed' => $userMap[$uid]['delayed'] ?? 0,
             ];
         }
 
+        // Sort by completed
         usort($employeeRecords, fn($a, $b) => $b['completed'] <=> $a['completed'] ?: strcmp($a['label'], $b['label']));
 
+        // Arrays for chart
         $employeeLabels = array_column($employeeRecords, 'label');
         $employeeCompleted = array_column($employeeRecords, 'completed');
         $employeePending = array_column($employeeRecords, 'pending');
@@ -86,83 +104,7 @@ class ReportController extends Controller
         $employeeInProgress = array_column($employeeRecords, 'in_progress');
         $employeeDelayed = array_column($employeeRecords, 'delayed');
 
-        // Category aggregation: try multiple sources in order, stop when we get data
-        $categoryLabels = $categoryCompleted = $categoryPending = $categoryOverdue = $categoryInProgress = $categoryDelayed = [];
-
-        $tryBuild = function ($rows) use (&$categoryLabels, &$categoryCompleted, &$categoryPending, &$categoryOverdue, &$categoryInProgress, &$categoryDelayed) {
-            if ($rows->isEmpty()) return false;
-            $grouped = $rows->groupBy('category');
-            foreach ($grouped as $cat => $items) {
-                $categoryLabels[] = $cat ?? 'Uncategorized';
-                $counts = $items->pluck('cnt', 'status')->toArray();
-                $categoryCompleted[] = (int)($counts['completed'] ?? 0);
-                $categoryPending[] = (int)($counts['pending'] ?? 0);
-                $categoryOverdue[] = (int)($counts['overdue'] ?? 0);
-                $categoryInProgress[] = (int)($counts['in_progress'] ?? 0);
-                $categoryDelayed[] = (int)($counts['delayed'] ?? 0);
-            }
-            return count($categoryLabels) > 0;
-        };
-
-        // Source A: task_assignments.category (string)
-        if (Schema::hasColumn($assignTable, 'category')) {
-            $rows = DB::table($assignTable)
-                ->select(DB::raw("COALESCE(category, 'Uncategorized') as category"), 'status', DB::raw('count(*) as cnt'))
-                ->when($from && $to, fn($q) => $q->whereBetween('target_date', [$from, $to]))
-                ->groupBy(DB::raw("COALESCE(category, 'Uncategorized')"), 'status')
-                ->get();
-            if ($tryBuild($rows)) { /* done */ }
-        }
-
-        // Source B: task_assignments.category_id -> categories.name
-        if (empty($categoryLabels) && Schema::hasColumn($assignTable, 'category_id') && Schema::hasTable('categories')) {
-            $rows = DB::table($assignTable)
-                ->join('categories', 'categories.id', '=', "$assignTable.category_id")
-                ->select(DB::raw("COALESCE(categories.name, 'Uncategorized') as category"), "$assignTable.status as status", DB::raw('count(*) as cnt'))
-                ->when($from && $to, fn($q) => $q->whereBetween("$assignTable.target_date", [$from, $to]))
-                ->groupBy('category', 'status')
-                ->get();
-            if ($tryBuild($rows)) { /* done */ }
-        }
-
-        // Source C: task_id -> tasks.category (string)
-        if (empty($categoryLabels) && Schema::hasColumn($assignTable, 'task_id') && Schema::hasTable('tasks') && Schema::hasColumn('tasks', 'category')) {
-            $rows = DB::table($assignTable)
-                ->join('tasks', 'tasks.id', '=', "$assignTable.task_id")
-                ->select(DB::raw("COALESCE(tasks.category, 'Uncategorized') as category"), "$assignTable.status as status", DB::raw('count(*) as cnt'))
-                ->when($from && $to, fn($q) => $q->whereBetween("$assignTable.target_date", [$from, $to]))
-                ->groupBy('category', 'status')
-                ->get();
-            if ($tryBuild($rows)) { /* done */ }
-        }
-
-        // Source D: task_id -> tasks.category_id -> categories.name
-        if (empty($categoryLabels)
-            && Schema::hasColumn($assignTable, 'task_id')
-            && Schema::hasTable('tasks')
-            && Schema::hasColumn('tasks', 'category_id')
-            && Schema::hasTable('categories')
-        ) {
-            $rows = DB::table($assignTable)
-                ->join('tasks', 'tasks.id', '=', "$assignTable.task_id")
-                ->join('categories', 'categories.id', '=', 'tasks.category_id')
-                ->select(DB::raw("COALESCE(categories.name, 'Uncategorized') as category"), "$assignTable.status as status", DB::raw('count(*) as cnt'))
-                ->when($from && $to, fn($q) => $q->whereBetween("$assignTable.target_date", [$from, $to]))
-                ->groupBy('category', 'status')
-                ->get();
-            if ($tryBuild($rows)) { /* done */ }
-        }
-
-        // Pad category arrays to same length (Chart.js expects consistent arrays)
-        $padTo = max(0, count($categoryLabels));
-        $pad = fn($arr) => array_pad($arr, $padTo, 0);
-        $categoryCompleted = $pad($categoryCompleted);
-        $categoryPending = $pad($categoryPending);
-        $categoryOverdue = $pad($categoryOverdue);
-        $categoryInProgress = $pad($categoryInProgress);
-        $categoryDelayed = $pad($categoryDelayed);
-
-        // Summary totals
+        // Summary
         $summary = [
             'completed' => array_sum($employeeCompleted),
             'pending' => array_sum($employeePending),
@@ -182,21 +124,14 @@ class ReportController extends Controller
                 'labels' => $employeeLabels,
                 'completed' => $employeeCompleted,
                 'pending' => $employeePending,
-                'overdue' => $employeeOverdue,
                 'in_progress' => $employeeInProgress,
+                'overdue' => $employeeOverdue,
                 'delayed' => $employeeDelayed,
             ],
-            'category' => [
-                'labels' => $categoryLabels,
-                'completed' => $categoryCompleted,
-                'pending' => $categoryPending,
-                'overdue' => $categoryOverdue,
-                'in_progress' => $categoryInProgress,
-                'delayed' => $categoryDelayed,
-            ]
         ]);
     }
 
+    // Range helper
     private function resolveRange($filter, Request $request)
     {
         $now = Carbon::now();
@@ -239,24 +174,42 @@ class ReportController extends Controller
         return [null, null, 'All Time', null, null];
     }
 
-    /**
-     * Efficient DB-based employee data used by DataTable
-     */
+    // Employee Data helper
     private function getEmployeeData($from = null, $to = null)
     {
         $assignTable = (new TaskAssignment())->getTable();
         $rows = DB::table($assignTable)
-            ->select('assigned_to_user_id', 'status', DB::raw('count(*) as cnt'))
+            ->select('assigned_to_user_id', 'status', 'target_date', DB::raw('count(*) as cnt'))
             ->when($from && $to, fn($q) => $q->whereBetween('target_date', [$from, $to]))
-            ->groupBy('assigned_to_user_id', 'status')
+            ->groupBy('assigned_to_user_id', 'status', 'target_date')
             ->get();
 
-        $map = []; $userIds = [];
+        $map = [];
+        $userIds = [];
+        $today = Carbon::today();
+
         foreach ($rows as $r) {
             $uid = $r->assigned_to_user_id ?? 0;
             $userIds[] = $uid;
-            $map[$uid][$r->status] = (int)$r->cnt;
+
+            // 🔹 Overdue only
+            if ($r->status !== 'completed' && Carbon::parse($r->target_date)->lt($today)) {
+                $map[$uid]['overdue'] = ($map[$uid]['overdue'] ?? 0) + $r->cnt;
+                $map[$uid]['delayed'] = ($map[$uid]['delayed'] ?? 0) + $r->cnt;
+            }
+            // 🔹 Pending / In Progress (exclude overdue)
+            elseif ($r->status === 'pending') {
+                $map[$uid]['pending'] = ($map[$uid]['pending'] ?? 0) + $r->cnt;
+            } elseif ($r->status === 'in_progress') {
+                $map[$uid]['in_progress'] = ($map[$uid]['in_progress'] ?? 0) + $r->cnt;
+            }
+
+            // 🔹 Completed
+            if ($r->status === 'completed') {
+                $map[$uid]['completed'] = ($map[$uid]['completed'] ?? 0) + $r->cnt;
+            }
         }
+
         $userIds = array_values(array_unique($userIds));
         $users = $userIds ? User::whereIn('id', $userIds)->pluck('name', 'id')->toArray() : [];
 

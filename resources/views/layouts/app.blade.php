@@ -56,6 +56,7 @@
             margin-right: 15px;
         }
 
+        /* SIDEBAR */
         .sidebar {
             position: fixed;
             top: 60px;
@@ -64,13 +65,19 @@
             width: 240px;
             background: #fff;
             border-right: 1px solid #e5e7eb;
-            padding: 15px 10px;
+            padding: 12px;
             transition: all .3s ease;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
         .sidebar.collapsed {
             width: 70px;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
         }
 
         .sidebar a {
@@ -113,10 +120,13 @@
             margin-left: 70px;
         }
 
-        .card {
-            border-radius: 14px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
-            border: none;
+        #formsArrow,
+        #userArrow {
+            transition: transform .3s ease;
+        }
+
+        .rotate {
+            transform: rotate(180deg);
         }
 
         @media(max-width:768px) {
@@ -132,14 +142,6 @@
                 margin-left: 0;
             }
         }
-
-        #formsArrow {
-            transition: transform .3s ease;
-        }
-
-        #formsArrow.rotate {
-            transform: rotate(180deg);
-        }
     </style>
 
     @stack('styles')
@@ -148,68 +150,75 @@
 <body>
 
     <!-- TOPBAR -->
-    <!-- TOPBAR -->
-<div class="topbar d-flex justify-content-between align-items-center">
-    <!-- LEFT SIDE -->
-    <div class="d-flex align-items-center gap-3">
-        <i class="bi bi-list toggle-btn" id="toggleSidebar"></i>
-        <h5 class="mb-0 fw-semibold">
-            <i class="bi bi-ui-checks-grid me-2"></i>
-            @yield('topbar-title', 'Dashboard')
-        </h5>
+    <div class="topbar d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-list toggle-btn" id="toggleSidebar"></i>
+            <h5 class="mb-0 fw-semibold">
+                <i class="bi bi-ui-checks-grid me-2"></i>
+                @yield('topbar-title', 'Dashboard')
+            </h5>
+        </div>
+        <div>@yield('topbar-buttons')</div>
     </div>
-
-    <!-- RIGHT SIDE -->
-    <div class="d-flex gap">
-        @yield('topbar-buttons')
-    </div>
-</div>
-
 
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-        <a href="{{ route('forms.index') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
-            <i class="bi bi-house"></i>
-            <span>Dashboard</span>
-        </a>
-        <a href="{{ route('calendar.index') }}" class="{{ request()->routeIs('calendar.index') ? 'active' : '' }}">
-            <i class="bi bi-calendar-event"></i>
-            <span>Calendar</span>
-        </a>
-        
-        <a href="{{ route('assignments.dashboard') }}" class="{{ request()->routeIs('assignments.dashboard') ? 'active' : '' }}">
-            <i class="bi bi-graph-up"></i>
-            <span>Task</span>
-        </a>
-        <a href="{{ route('report.table') }}" class="{{ request()->routeIs('report.table') ? 'active' : '' }}">
-            <i class="bi bi-file-earmark-text"></i>
-            <span>Report</span>
-        </a>
 
+        <div class="sidebar-content">
 
-        <hr>
+            <a href="{{ route('forms.index') }}">
+                <i class="bi bi-house"></i><span>Dashboard</span>
+            </a>
 
-        <!-- Search -->
-        <div class="px-3 mb-2">
-            <input type="text" id="formSearch" class="form-control form-control-sm" placeholder="Search forms...">
+            <a href="{{ route('calendar.index') }}">
+                <i class="bi bi-calendar-event"></i><span>Calendar</span>
+            </a>
+
+            <a href="{{ route('assignments.dashboard') }}">
+                <i class="bi bi-graph-up"></i><span>Task</span>
+            </a>
+
+            <a href="{{ route('report.table') }}">
+                <i class="bi bi-file-earmark-text"></i><span>Report</span>
+            </a>
+
+            <hr>
+
+            <div class="px-2 mb-2">
+                <input type="text" id="formSearch" class="form-control form-control-sm" placeholder="Search forms...">
+            </div>
+
+            <a href="javascript:void(0)" id="toggleFormsList" class="d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-file-earmark-text"></i> Forms</span>
+                <i class="bi bi-chevron-down" id="formsArrow"></i>
+            </a>
+
+            <div id="formsList" class="ms-3 mt-1">
+                @foreach (\App\Models\Form::latest()->take(5)->get() as $form)
+                    <a href="{{ route('forms.entries', $form->id) }}">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span>{{ $form->name }}</span>
+                    </a>
+                @endforeach
+            </div>
         </div>
 
-        <!-- Forms Dropdown -->
-        <a href="javascript:void(0)" class="d-flex justify-content-between align-items-center" id="toggleFormsList">
-            <span><i class="bi bi-file-earmark-text"></i> Forms</span>
-            <i class="bi bi-chevron-down" id="formsArrow"></i>
-        </a>
+        <!-- USER (FIXED) -->
+        <div class="border-top pt-3 px-2">
+            <div id="userDropdown" class="d-flex justify-content-between align-items-center p-2 rounded"
+                style="cursor:pointer;background:#f3f4f6;">
+                <span>{{ Str::limit(auth()->user()->name, 10) }}</span>
+                <i class="bi bi-chevron-down" id="userArrow"></i>
+            </div>
 
-        <div id="formsList" class="ms-3 mt-1">
-            <!-- Recent 10 forms -->
-            @php $recentForms = \App\Models\Form::latest()->take(5)->get(); @endphp
-            @foreach ($recentForms as $form)
-                <a href="{{ route('forms.entries', $form->id) }}"
-                    class="{{ request()->is('forms/' . $form->id . '*') ? 'active' : '' }}">
-                    <i class="bi bi-file-earmark-text"></i>
-                    <span>{{ $form->name }}</span>
-                </a>
-            @endforeach
+            <div id="userMenu" class="mt-2" style="display:none;">
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="btn btn-sm btn-danger w-100">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -218,43 +227,50 @@
         @yield('content')
     </div>
 
+    <!-- JS -->
     <script>
-        // Sidebar toggle
-        $('#toggleSidebar').click(function() {
-            $('#sidebar').toggleClass('collapsed show');
-            $('#content').toggleClass('collapsed');
-        });
+        $(document).ready(function () {
 
-        // Forms list toggle
-        $('#toggleFormsList').click(function() {
-            $('#formsList').slideToggle(200);
-            $('#formsArrow').toggleClass('rotate');
-        });
+            /* RESTORE STATE */
+            if (localStorage.getItem('sidebar') === 'collapsed') {
+                $('#sidebar').addClass('collapsed');
+                $('#content').addClass('collapsed');
+            }
 
-        // AJAX server-side search
-        $('#formSearch').on('keyup', function() {
-            let keyword = $(this).val();
-            $.ajax({
-                url: "{{ route('forms.ajax.search') }}",
-                type: "GET",
-                data: {
-                    search: keyword
-                },
-                success: function(res) {
-                    let html = '';
-                    if (res.data.length > 0) {
-                        res.data.forEach(f => {
-                            html += `<a href="/forms/${f.id}/entries">
-                                    <i class="bi bi-file-earmark-text"></i>
-                                    <span>${f.name}</span>
-                                </a>`;
-                        });
-                    } else {
-                        html = `<div class="text-muted px-2">No forms found</div>`;
-                    }
-                    $('#formsList').html(html);
-                }
+            if (localStorage.getItem('forms') === 'open') {
+                $('#formsList').show();
+                $('#formsArrow').addClass('rotate');
+            }
+
+            if (localStorage.getItem('user') === 'open') {
+                $('#userMenu').show();
+                $('#userArrow').addClass('rotate');
+            }
+
+            /* SIDEBAR */
+            $('#toggleSidebar').click(function () {
+                $('#sidebar').toggleClass('collapsed show');
+                $('#content').toggleClass('collapsed');
+                localStorage.setItem('sidebar',
+                    $('#sidebar').hasClass('collapsed') ? 'collapsed' : 'open');
             });
+
+            /* FORMS */
+            $('#toggleFormsList').click(function () {
+                $('#formsList').slideToggle(200);
+                $('#formsArrow').toggleClass('rotate');
+                localStorage.setItem('forms',
+                    $('#formsList').is(':visible') ? 'open' : 'closed');
+            });
+
+            /* USER */
+            $('#userDropdown').click(function () {
+                $('#userMenu').slideToggle(150);
+                $('#userArrow').toggleClass('rotate');
+                localStorage.setItem('user',
+                    $('#userMenu').is(':visible') ? 'open' : 'closed');
+            });
+
         });
     </script>
 

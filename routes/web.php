@@ -1,16 +1,21 @@
 <?php
 
-use App\Http\Controllers\FormController;
-use App\Http\Controllers\FormFieldController;
-use App\Http\Controllers\FormEntryValueController;
-use App\Http\Controllers\FormEntryController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FormController;
+use App\Http\Controllers\FormEntryController;
+use App\Http\Controllers\FormEntryValueController;
+use App\Http\Controllers\FormFieldController;
+use Illuminate\Support\Facades\Route;
 
 // ---------------------------
 // FORMS
 // ---------------------------
-Route::get('/', [FormController::class, 'index'])->name('forms.index');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/', [FormController::class, 'index'])->name('forms.index');
+
+
 Route::post('/forms/store', [FormController::class, 'store'])->name('forms.store');
 Route::get('/forms/{form}/edit', [FormController::class, 'edit'])->name('forms.edit');
 Route::put('/forms/{form}', [FormController::class, 'update'])->name('forms.update');
@@ -64,7 +69,23 @@ Route::delete('/entries/{entry}', [FormEntryController::class,'destroy']);
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/forms/ajax/search', [FormController::class, 'ajaxSearch'])->name('forms.ajax.search');
 
+
+
+
+}); 
+
 // ---------------------------
-// ASSIGNMENTS
+// AUTHENTICATION
 // ---------------------------
-require __DIR__.'/assignments.php';
+// Route::middleware('guest')->group(function () {
+
+    Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+
+    Route::get('/register', [AuthController::class, 'registerForm'])->name('register');
+    Route::post('/register', [AuthController::class, 'register']);
+
+// });
+
+
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

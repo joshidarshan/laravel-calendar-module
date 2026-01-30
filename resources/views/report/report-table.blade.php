@@ -21,11 +21,11 @@
                     <th class="text-start">Employee</th>
                     <th>Total</th>
                     <th>Score</th>
-                    <th>Overdue</th>
                     <th>Pending</th>
                     <th>Progress</th>
                     <th>Completed</th>
-                    <th>Delayed</th>
+                    <th>Overdue</th>
+                    {{-- <th>Delayed</th> --}}
                 </tr>
             </thead>
         </table>
@@ -64,14 +64,30 @@
         </div>
 
         {{-- EMPLOYEE BAR CHART (FULL WIDTH) --}}
-        <div class="row g-3">
+        {{-- <div class="row g-3">
             <div class="col-12">
                 <div class="card p-3 card-chart">
                     <h6 class="mb-2">Employee Wise</h6>
                     <canvas id="employeeChart"></canvas>
                 </div>
             </div>
+        </div> --}}
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card p-3 card-chart">
+                    <h6 class="mb-2">Employee Wise</h6>
+                    <canvas id="employeeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card p-3 card-chart">
+                    <h6 class="mb-2">Category Wise</h6>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
         </div>
+
 
     </div>
 
@@ -98,17 +114,26 @@
             padding: 6px 10px;
             border-radius: 8px;
             background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
             font-size: 0.95rem;
         }
+
         .swatch {
             width: 12px;
             height: 12px;
             border-radius: 3px;
-            display:inline-block;
+            display: inline-block;
         }
-        .summary-label { color:#374151; margin-right:6px; }
-        .summary-value { font-weight:700; color:#111827; }
+
+        .summary-label {
+            color: #374151;
+            margin-right: 6px;
+        }
+
+        .summary-value {
+            font-weight: 700;
+            color: #111827;
+        }
     </style>
 @endpush
 
@@ -137,10 +162,24 @@
                         }
                     }
                 },
-                columns: [
-                    { data: 'employee', className: 'text-start' },
-                    { data: 'total' }, { data: 'score' }, { data: 'overdue' },
-                    { data: 'pending' }, { data: 'in_progress' }, { data: 'completed' }, { data: 'delayed' }
+                columns: [{
+                        data: 'employee',
+                        className: 'text-start'
+                    },
+                    {
+                        data: 'total'
+                    }, {
+                        data: 'score'
+                    },
+                    {
+                        data: 'pending'
+                    }, {
+                        data: 'in_progress'
+                    }, {
+                        data: 'completed'
+                    }, {
+                        data: 'overdue'
+                    }
                 ]
             });
 
@@ -178,55 +217,223 @@
             Chart.register(drawBarDataLabels);
 
             const commonOptions = {
-                plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                }
             };
 
             // Donut charts
             const statusChart = new Chart(document.getElementById('statusChart'), {
                 type: 'doughnut',
-                data: { labels: ['Overdue', 'Pending', 'In Progress'], datasets: [{ data: [0, 0, 0], backgroundColor: ['#dc3545', '#ffc107', '#0dcaf0'] }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                data: {
+                    labels: ['Overdue', 'Pending', 'In Progress'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#dc3545', '#ffc107', '#0dcaf0']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
             });
             const completionChart = new Chart(document.getElementById('completionChart'), {
                 type: 'doughnut',
-                data: { labels: ['Completed', 'Not Completed'], datasets: [{ data: [0, 0], backgroundColor: ['#28a745', '#dc3545'] }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                data: {
+                    labels: ['Completed', 'Not Completed'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#28a745', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
             });
             const timingChart = new Chart(document.getElementById('timingChart'), {
                 type: 'doughnut',
-                data: { labels: ['In-Time', 'Delayed'], datasets: [{ data: [0, 0], backgroundColor: ['#28a745', '#dc3545'] }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                data: {
+                    labels: ['In-Time', 'Delayed'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#28a745', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
             });
+            // Category wise bar chart
+            const categoryChart = new Chart(
+                document.getElementById('categoryChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Pending', 'In Progress', 'Completed', 'Overdue'],
+                        datasets: [{
+                            label: 'Tasks',
+                            data: [0, 0, 0, 0],
+                            backgroundColor: [
+                                '#ffc107',
+                                '#0dcaf0',
+                                '#28a745',
+                                '#dc3545'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                }
+            );
 
             // Employee stacked bar (full width)
             const employeeChart = new Chart(document.getElementById('employeeChart'), {
                 type: 'bar',
                 data: {
                     labels: [],
-                    datasets: [
-                        { label: 'Pending', data: [], backgroundColor: '#ffc107' },
-                        { label: 'Overdue', data: [], backgroundColor: '#dc3545' },
-                        { label: 'In Progress', data: [], backgroundColor: '#0dcaf0' },
-                        { label: 'Completed', data: [], backgroundColor: '#28a745' }
+                    datasets: [{
+                            label: 'Pending',
+                            data: [],
+                            backgroundColor: '#ffc107'
+                        },
+                        {
+                            label: 'In Progress',
+                            data: [],
+                            backgroundColor: '#0dcaf0'
+                        },
+                        {
+                            label: 'Completed',
+                            data: [],
+                            backgroundColor: '#28a745'
+                        },
+                        {
+                            label: 'Overdue',
+                            data: [],
+                            backgroundColor: '#dc3545'
+                        }
                     ]
                 },
-                options: Object.assign({}, commonOptions, { plugins: { legend: { position: 'top' } } })
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: false
+                        },
+                        y: {
+                            stacked: false,
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                precision: 0
+                            },
+                            title: {
+                                display: true,
+                                text: 'Tasks Count'
+                            }
+                        }
+                    }
+                }
             });
+
+
 
             function renderSummaryLabels(summary) {
                 const container = document.getElementById('summaryLabels');
                 if (!container) return;
-                const items = [
-                    {label: 'Completed', value: summary.completed || 0, color: '#28a745'},
-                    {label: 'Pending', value: summary.pending || 0, color: '#ffc107'},
-                    {label: 'Overdue', value: summary.overdue || 0, color: '#dc3545'},
-                    {label: 'In Progress', value: summary.in_progress || 0, color: '#0dcaf0'},
-                    {label: 'Delayed', value: summary.delayed || 0, color: '#6f42c1'},
-                    {label: 'Not Completed', value: summary.not_completed || 0, color: '#f97316'},
-                    {label: 'In-Time', value: summary.in_time || 0, color: '#10b981'}
+                const items = [{
+                        label: 'Completed',
+                        value: summary.completed || 0,
+                        color: '#28a745'
+                    },
+                    {
+                        label: 'Pending',
+                        value: summary.pending || 0,
+                        color: '#ffc107'
+                    },
+                    {
+                        label: 'Overdue',
+                        value: summary.overdue || 0,
+                        color: '#dc3545'
+                    },
+                    {
+                        label: 'In Progress',
+                        value: summary.in_progress || 0,
+                        color: '#0dcaf0'
+                    },
+                    {
+                        label: 'Delayed',
+                        value: summary.delayed || 0,
+                        color: '#6f42c1'
+                    },
+                    {
+                        label: 'Not Completed',
+                        value: summary.not_completed || 0,
+                        color: '#f97316'
+                    },
+                    {
+                        label: 'In-Time',
+                        value: summary.in_time || 0,
+                        color: '#10b981'
+                    }
                 ];
 
                 container.innerHTML = items.map(it => `
@@ -249,23 +456,51 @@
                     if (!r) return;
 
                     // donuts
-                    statusChart.data.datasets[0].data = [r.summary.overdue || 0, r.summary.pending || 0, r.summary.in_progress || 0];
-                    completionChart.data.datasets[0].data = [r.summary.completed || 0, r.summary.not_completed || 0];
+                    statusChart.data.datasets[0].data = [r.summary.overdue || 0, r.summary.pending || 0, r
+                        .summary.in_progress || 0
+                    ];
+                    completionChart.data.datasets[0].data = [r.summary.completed || 0, r.summary
+                        .not_completed || 0
+                    ];
                     timingChart.data.datasets[0].data = [r.summary.in_time || 0, r.summary.delayed || 0];
                     statusChart.update();
                     completionChart.update();
                     timingChart.update();
-
+categoryChart.data.datasets[0].data = [
+    r.summary.pending || 0,
+    r.summary.in_progress || 0,
+    r.summary.completed || 0,
+    r.summary.overdue || 0
+];
+categoryChart.update();
                     // render textual summary labels under donuts
                     renderSummaryLabels(r.summary);
 
                     // employee stacked bars (full width)
                     employeeChart.data.labels = r.employee.labels || [];
                     employeeChart.data.datasets[0].data = r.employee.pending || [];
-                    employeeChart.data.datasets[1].data = r.employee.overdue || [];
-                    employeeChart.data.datasets[2].data = r.employee.in_progress || [];
-                    employeeChart.data.datasets[3].data = r.employee.completed || [];
+                    employeeChart.data.datasets[1].data = r.employee.in_progress || [];
+                    employeeChart.data.datasets[2].data = r.employee.completed || [];
+                    employeeChart.data.datasets[3].data = r.employee.overdue || [];
+
+                    // 🔥 Y-axis total fix
+                    let maxTotal = 0;
+                    r.employee.labels.forEach((_, i) => {
+                        const total =
+                            (r.employee.pending[i] || 0) +
+                            (r.employee.in_progress[i] || 0) +
+                            (r.employee.completed[i] || 0) +
+                            (r.employee.overdue[i] || 0);
+
+                        if (total > maxTotal) maxTotal = total;
+                    });
+
+                    // 🔥 exact Y-axis max
+                    employeeChart.options.scales.y.max = maxTotal;
+
                     employeeChart.update();
+
+
 
                     $('#reportLabel').text(r.label);
                     updateNav(r.prev, r.next);
@@ -308,6 +543,7 @@
                 $('#chartView').removeClass('d-none');
                 loadAllCharts();
             });
+            console.log(r.employee.delayed);
 
             // initial load
             table.ajax.reload();
