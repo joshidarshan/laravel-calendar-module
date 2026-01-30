@@ -1,7 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\CalendarTaskController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ReportApiController;
 
-Route::get('/calendar-tasks', [CalendarTaskController::class, 'index']);
-Route::post('/calendar-tasks', [CalendarTaskController::class, 'store']);
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function() {
+    Route::get('report/table', [ReportApiController::class, 'tableData']);
+    Route::get('report/chart', [ReportApiController::class, 'chartData']);
+});

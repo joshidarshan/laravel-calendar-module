@@ -12,28 +12,6 @@ use Illuminate\Support\Facades\Schema;
 
 class ReportController extends Controller
 {
-
-
-// public function index()
-// {
-//     $user = auth()->User(); // or pick a test user
-//     $apiToken = $user->createToken('report-token')->plainTextToken;
-
-//     return view('report.report-table', compact('apiToken'));
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
     public function index(Request $request)
     {
         return view('report.report-table');
@@ -250,3 +228,4 @@ class ReportController extends Controller
         return $result;
     }
 }
+

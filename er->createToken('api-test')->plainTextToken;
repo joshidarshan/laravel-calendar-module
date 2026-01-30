@@ -1,0 +1,11 @@
+[90m= [39m[34;4mApp\Models\User[39;24m {#6117
+    [34mid[39m: [35m1[39m,
+    [34mname[39m: "[32mHet Ladani[39m",
+    [34memail[39m: "[32mhet.ladani@example.com[39m",
+    [34memail_verified_at[39m: [36mnull[39m,
+    #[33mpassword[39m: "[32m$2y$12$zWFYEvAxTQGGrpBYP.PIvurK79HXW9qWlGl4bWMyQBWHe3jeMSVIS[39m",
+    #[33mremember_token[39m: [36mnull[39m,
+    [34mcreated_at[39m: "[32m2026-01-28 10:26:03[39m",
+    [34mupdated_at[39m: "[32m2026-01-28 10:26:03[39m",
+  }
+

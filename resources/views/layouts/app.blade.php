@@ -207,7 +207,7 @@
         <div class="border-top pt-3 px-2">
             <div id="userDropdown" class="d-flex justify-content-between align-items-center p-2 rounded"
                 style="cursor:pointer;background:#f3f4f6;">
-                <span>{{ Str::limit(auth()->user()->name, 10) }}</span>
+                <span>{{ Str::limit(auth()->user()->name, 13) }}</span>
                 <i class="bi bi-chevron-down" id="userArrow"></i>
             </div>
 
