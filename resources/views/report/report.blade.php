@@ -143,6 +143,13 @@ function renderTable(data) {
     table.insertAdjacentHTML('beforeend', tbody);
 }
 
+function shortName(name) {
+    if (!name) return '';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0];
+    return parts[0] + ' ' + parts[1].charAt(0) + '.';
+}
+
 // ---------------- Filter buttons ----------------
 document.querySelectorAll('.filter-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -190,19 +197,56 @@ function renderCharts(data){
     });
 
     // Employee wise
-    employeeChart = new Chart(document.getElementById('employeeChart'),{
-        type:'bar',
-        data:{
-            labels:data.map(d=>d.employee),
-            datasets:[
-                {label:'Completed',data:data.map(d=>d.completed), backgroundColor:'#10b981'},
-                {label:'Pending',data:data.map(d=>d.pending), backgroundColor:'#f59e0b'},
-                {label:'Progress',data:data.map(d=>d.progress), backgroundColor:'#3b82f6'},
-                {label:'Overdue',data:data.map(d=>d.overdue), backgroundColor:'#ef4444'}
-            ]
+// ---- Top 5 employees (by total tasks) ----
+const topEmployees = [...data]
+    .sort((a, b) => (b.total || 0) - (a.total || 0))
+    .slice(0, 5);
+
+// Employee wise
+employeeChart = new Chart(document.getElementById('employeeChart'), {
+    type: 'bar',
+    data: {
+        labels: topEmployees.map(d => shortName(d.employee)),
+       datasets: [
+            {
+                label: 'Completed',
+                data: topEmployees.map(d => d.completed || 0),
+                backgroundColor: '#10b981' // green
+            },
+            {
+                label: 'Pending',
+                data: topEmployees.map(d => d.pending || 0),
+                backgroundColor: '#f59e0b' // yellow / orange
+            },
+            {
+                label: 'Progress',
+                data: topEmployees.map(d => d.progress || 0),
+                backgroundColor: '#3b82f6' // blue
+            },
+            {
+                label: 'Overdue',
+                data: topEmployees.map(d => d.overdue || 0),
+                backgroundColor: '#ef4444' // red
+            }
+        ]
+    },
+   options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
         },
-        options:{responsive:true, plugins:{legend:{position:'bottom'}}}
-    });
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1,        // ✅ 0,1,2,3
+                    precision: 0        // ✅ remove decimal
+                }
+            }
+        }
+    }
+});
+
 
     // Category wise
     categoryChart = new Chart(document.getElementById('categoryChart'),{
