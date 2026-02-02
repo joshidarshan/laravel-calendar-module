@@ -11,7 +11,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required'
         ]);
 
@@ -21,16 +21,17 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $user = $request->user();
+        $user = Auth::user();
 
-        $token = $user->createToken('report-token')->plainTextToken;
+        // 🔑 Generate Bearer Token
+        $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
             'token' => $token,
-            'user'  => $user
+            'token_type' => 'Bearer',
+            'user' => $user
         ]);
     }
-
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

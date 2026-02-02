@@ -13,240 +13,110 @@ use Illuminate\Support\Facades\Schema;
 class ReportController extends Controller
 {
 
-
-// public function index()
-// {
-//     $user = auth()->User(); // or pick a test user
-//     $apiToken = $user->createToken('report-token')->plainTextToken;
-
-//     return view('report.report-table', compact('apiToken'));
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public function index(Request $request)
-    {
-        return view('report.report-table');
+public function employeeReport(Request $request)
+{
+    $user = $request->user();
+    if (!$user) {
+        return response()->json(['message' => 'Unauthenticated'], 401);
     }
 
-    // DataTable JSON
-    public function data(Request $request)
-    {
-        $filter = $request->filter ?? 'day';
-        [$from, $to, $label, $prev, $next] = $this->resolveRange($filter, $request);
+    $filter = $request->query('filter', 'day'); // day / week / month / all
+    $offset = (int) $request->query('offset', 0);
 
-        $data = $this->getEmployeeData($from, $to);
+    // Determine date range based on filter
+    $from = $to = null;
+    switch ($filter) {
+        case 'day':
+            $from = now()->addDays($offset)->startOfDay();
+            $to = now()->addDays($offset)->endOfDay();
+            $label = $from->format('d M Y');
+            break;
 
-        return DataTables::of($data)
-            ->addColumn('total', fn($e) => $e['completed'] + $e['pending'] + $e['overdue'] + $e['in_progress'])
-            ->addColumn('score', function ($e) {
-                $total = $e['completed'] + $e['pending'] + $e['overdue'] + $e['in_progress'];
-                return $total ? round(($e['completed'] / $total) * 100) . '%' : '0%';
-            })
-            ->with([
-                'label' => $label,
-                'prev'  => $prev,
-                'next'  => $next,
-            ])
-            ->make(true);
+        case 'week':
+            $from = now()->addWeeks($offset)->startOfWeek();
+            $to = now()->addWeeks($offset)->endOfWeek();
+            $label = $from->format('d M') . ' - ' . $to->format('d M Y');
+            break;
+
+        case 'month':
+            $from = now()->addMonths($offset)->startOfMonth();
+            $to = now()->addMonths($offset)->endOfMonth();
+            $label = $from->format('F Y');
+            break;
+
+        default:
+            $label = 'All Time';
     }
 
-    // Chart JSON
-    public function chartData(Request $request)
-    {
-        $filter = $request->filter ?? 'day';
-        [$from, $to, $label, $prev, $next] = $this->resolveRange($filter, $request);
+    // Fetch assignments
+    $assignments = TaskAssignment::with('assignedUser')
+        ->when($from && $to, fn($q) => $q->whereBetween('target_date', [$from, $to]))
+        ->get();
 
-        $assignTable = (new TaskAssignment())->getTable();
-        $today = Carbon::today();
-        $userMap = [];
-        $userIds = [];
+    // Map per employee
+    $map = [];
 
-        $assignRows = DB::table($assignTable)
-            ->select('assigned_to_user_id', 'status', 'target_date', DB::raw('count(*) as cnt'))
-            ->when($from && $to, fn($q) => $q->whereBetween('target_date', [$from, $to]))
-            ->groupBy('assigned_to_user_id', 'status', 'target_date')
-            ->get();
+    foreach ($assignments as $task) {
+        $uid = $task->assigned_to_user_id;
 
-        foreach ($assignRows as $r) {
-            $uid = $r->assigned_to_user_id ?? 0;
-            $userIds[] = $uid;
-
-            // 🔹 Overdue only
-            if ($r->status !== 'completed' && Carbon::parse($r->target_date)->lt($today)) {
-                $userMap[$uid]['overdue'] = ($userMap[$uid]['overdue'] ?? 0) + (int)$r->cnt;
-                $userMap[$uid]['delayed'] = ($userMap[$uid]['delayed'] ?? 0) + (int)$r->cnt; // chart uses delayed
-            }
-            // 🔹 Pending / In Progress (exclude overdue)
-            elseif ($r->status === 'pending') {
-                $userMap[$uid]['pending'] = ($userMap[$uid]['pending'] ?? 0) + (int)$r->cnt;
-            } elseif ($r->status === 'in_progress') {
-                $userMap[$uid]['in_progress'] = ($userMap[$uid]['in_progress'] ?? 0) + (int)$r->cnt;
-            }
-
-            // 🔹 Completed
-            if ($r->status === 'completed') {
-                $userMap[$uid]['completed'] = ($userMap[$uid]['completed'] ?? 0) + (int)$r->cnt;
-            }
-        }
-
-        $userIds = array_values(array_unique($userIds));
-        $users = $userIds ? User::whereIn('id', $userIds)->pluck('name', 'id')->toArray() : [];
-
-        $employeeRecords = [];
-        foreach ($userIds as $uid) {
-            $employeeRecords[] = [
-                'label' => $users[$uid] ?? 'N/A',
-                'completed' => $userMap[$uid]['completed'] ?? 0,
-                'pending' => $userMap[$uid]['pending'] ?? 0,
-                'in_progress' => $userMap[$uid]['in_progress'] ?? 0,
-                'overdue' => $userMap[$uid]['overdue'] ?? 0,
-                'delayed' => $userMap[$uid]['delayed'] ?? 0,
+        // Initialize all fields if not exists
+        if (!isset($map[$uid])) {
+            $map[$uid] = [
+                'employee' => $task->assignedUser->name ?? 'N/A',
+                'total' => 0,
+                'pending' => 0,
+                'progress' => 0,
+                'completed' => 0,
+                'overdue' => 0,
+                'score' => 0,
             ];
         }
 
-        // Sort by completed
-        usort($employeeRecords, fn($a, $b) => $b['completed'] <=> $a['completed'] ?: strcmp($a['label'], $b['label']));
+        $map[$uid]['total'] += 1;
 
-        // Arrays for chart
-        $employeeLabels = array_column($employeeRecords, 'label');
-        $employeeCompleted = array_column($employeeRecords, 'completed');
-        $employeePending = array_column($employeeRecords, 'pending');
-        $employeeOverdue = array_column($employeeRecords, 'overdue');
-        $employeeInProgress = array_column($employeeRecords, 'in_progress');
-        $employeeDelayed = array_column($employeeRecords, 'delayed');
+        // Count by status
+        if ($task->status === 'pending') {
+            $map[$uid]['pending'] += 1;
+        } elseif ($task->status === 'in_progress') {
+            $map[$uid]['progress'] += 1;
+        } elseif ($task->status === 'completed') {
+            $map[$uid]['completed'] += 1;
+        }
 
-        // Summary
-        $summary = [
-            'completed' => array_sum($employeeCompleted),
-            'pending' => array_sum($employeePending),
-            'overdue' => array_sum($employeeOverdue),
-            'in_progress' => array_sum($employeeInProgress),
-            'delayed' => array_sum($employeeDelayed),
-            'not_completed' => array_sum($employeePending) + array_sum($employeeOverdue) + array_sum($employeeInProgress),
-            'in_time' => max(array_sum($employeeCompleted) - array_sum($employeeDelayed), 0),
-        ];
+        // Overdue (not completed and target_date < today)
+        if ($task->status !== 'completed' && Carbon::parse($task->target_date)->lt(now())) {
+            $map[$uid]['overdue'] += 1;
+        }
 
-        return response()->json([
-            'label' => $label,
-            'prev' => $prev,
-            'next' => $next,
-            'summary' => $summary,
-            'employee' => [
-                'labels' => $employeeLabels,
-                'completed' => $employeeCompleted,
-                'pending' => $employeePending,
-                'in_progress' => $employeeInProgress,
-                'overdue' => $employeeOverdue,
-                'delayed' => $employeeDelayed,
-            ],
-        ]);
+        // Score = completed / total * 100
+        $map[$uid]['score'] = round(($map[$uid]['completed'] / $map[$uid]['total']) * 100);
     }
 
-    // Range helper
-    private function resolveRange($filter, Request $request)
-    {
-        $now = Carbon::now();
-
-        if ($filter === 'day') {
-            $date = $request->date ? Carbon::createFromFormat('Y-m-d', $request->date) : Carbon::today();
-            return [
-                $date->copy()->startOfDay(),
-                $date->copy()->endOfDay(),
-                $date->format('d M Y'),
-                $date->copy()->subDay()->format('Y-m-d'),
-                $date->copy()->addDay()->format('Y-m-d'),
+    // Ensure employees with 0 tasks still show
+    $allUsers = User::pluck('name', 'id');
+    foreach ($allUsers as $id => $name) {
+        if (!isset($map[$id])) {
+            $map[$id] = [
+                'employee' => $name,
+                'total' => 0,
+                'pending' => 0,
+                'progress' => 0,
+                'completed' => 0,
+                'overdue' => 0,
+                'score' => 0,
             ];
         }
-
-        if ($filter === 'week') {
-            $week = $request->week ? Carbon::createFromFormat('Y-m-d', $request->week) : $now;
-            $start = $week->copy()->startOfWeek();
-            $end = $week->copy()->endOfWeek();
-            return [
-                $start,
-                $end,
-                'Week: ' . $start->format('d M') . ' - ' . $end->format('d M Y'),
-                $start->copy()->subWeek()->format('Y-m-d'),
-                $start->copy()->addWeek()->format('Y-m-d'),
-            ];
-        }
-
-        if ($filter === 'month') {
-            $month = $request->month ? Carbon::createFromFormat('Y-m-d', $request->month) : $now->copy()->startOfMonth();
-            return [
-                $month->copy()->startOfMonth(),
-                $month->copy()->endOfMonth(),
-                $month->format('F Y'),
-                $month->copy()->subMonth()->startOfMonth()->format('Y-m-d'),
-                $month->copy()->addMonth()->startOfMonth()->format('Y-m-d'),
-            ];
-        }
-
-        return [null, null, 'All Time', null, null];
     }
 
-    // Employee Data helper
-    private function getEmployeeData($from = null, $to = null)
-    {
-        $assignTable = (new TaskAssignment())->getTable();
-        $rows = DB::table($assignTable)
-            ->select('assigned_to_user_id', 'status', 'target_date', DB::raw('count(*) as cnt'))
-            ->when($from && $to, fn($q) => $q->whereBetween('target_date', [$from, $to]))
-            ->groupBy('assigned_to_user_id', 'status', 'target_date')
-            ->get();
+    // Convert map to array
+// Convert map to array and remove employees with 0 total
+$data = array_values(array_filter($map, fn($e) => $e['total'] > 0));
 
-        $map = [];
-        $userIds = [];
-        $today = Carbon::today();
+return response()->json([
+    'label' => $label,
+    'data' => $data
+]);
 
-        foreach ($rows as $r) {
-            $uid = $r->assigned_to_user_id ?? 0;
-            $userIds[] = $uid;
+}
 
-            // 🔹 Overdue only
-            if ($r->status !== 'completed' && Carbon::parse($r->target_date)->lt($today)) {
-                $map[$uid]['overdue'] = ($map[$uid]['overdue'] ?? 0) + $r->cnt;
-                $map[$uid]['delayed'] = ($map[$uid]['delayed'] ?? 0) + $r->cnt;
-            }
-            // 🔹 Pending / In Progress (exclude overdue)
-            elseif ($r->status === 'pending') {
-                $map[$uid]['pending'] = ($map[$uid]['pending'] ?? 0) + $r->cnt;
-            } elseif ($r->status === 'in_progress') {
-                $map[$uid]['in_progress'] = ($map[$uid]['in_progress'] ?? 0) + $r->cnt;
-            }
-
-            // 🔹 Completed
-            if ($r->status === 'completed') {
-                $map[$uid]['completed'] = ($map[$uid]['completed'] ?? 0) + $r->cnt;
-            }
-        }
-
-        $userIds = array_values(array_unique($userIds));
-        $users = $userIds ? User::whereIn('id', $userIds)->pluck('name', 'id')->toArray() : [];
-
-        $result = [];
-        foreach ($userIds as $uid) {
-            $result[] = [
-                'employee' => $users[$uid] ?? 'N/A',
-                'completed' => $map[$uid]['completed'] ?? 0,
-                'pending' => $map[$uid]['pending'] ?? 0,
-                'in_progress' => $map[$uid]['in_progress'] ?? 0,
-                'overdue' => $map[$uid]['overdue'] ?? 0,
-                'delayed' => $map[$uid]['delayed'] ?? 0,
-            ];
-        }
-
-        return $result;
-    }
 }

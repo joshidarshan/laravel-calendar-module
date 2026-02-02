@@ -178,7 +178,7 @@
                 <i class="bi bi-graph-up"></i><span>Task</span>
             </a>
 
-            <a href="{{ route('report.table') }}">
+            <a href="{{ route('report.report') }}">
                 <i class="bi bi-file-earmark-text"></i><span>Report</span>
             </a>
 

@@ -64,20 +64,15 @@ Route::get('/entries/{entry}/edit', [FormEntryController::class,'edit']);
 Route::put('/entries/{entry}', [FormEntryController::class,'update']);
 Route::delete('/entries/{entry}', [FormEntryController::class,'destroy']);
 
-
-
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/forms/ajax/search', [FormController::class, 'ajaxSearch'])->name('forms.ajax.search');
 
 
-
+Route::middleware('auth')->get('/report', function () {
+    return view('report.report');
+})->name('report.report');
 
 }); 
-
-// ---------------------------
-// AUTHENTICATION
-// ---------------------------
-// Route::middleware('guest')->group(function () {
 
     Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
@@ -85,7 +80,9 @@ Route::get('/forms/ajax/search', [FormController::class, 'ajaxSearch'])->name('f
     Route::get('/register', [AuthController::class, 'registerForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
 
-// });
-
-
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+
+
+
+

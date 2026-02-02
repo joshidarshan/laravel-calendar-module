@@ -101,7 +101,7 @@
             <th>Progress</th>
             <th>Estimated Hours</th> <!-- New -->
             <th>Actual Hours</th>    <!-- New -->
-            <th>Actions</th>
+            <th style="width: 18%">Actions</th>
         </tr>
     </thead>
 </table>
