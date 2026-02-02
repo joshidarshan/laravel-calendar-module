@@ -23,6 +23,9 @@
         <a href="#" class="btn btn-outline-dark" id="btnChart">
             <i class="bi bi-bar-chart"></i>
         </a>
+           <a href="#" class="btn btn-outline-dark">
+            <i class="bi bi-download"></i>
+        </a>
     </div>
-
+ 
 </div>
