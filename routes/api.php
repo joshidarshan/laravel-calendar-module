@@ -10,11 +10,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    // JSON report for dashboard
     Route::get('/employee-report', [ReportController::class, 'employeeReport']);
-
-    Route::get('/employee-report/download', [ReportController::class, 'downloadExcel'])
-        ->name('employee.report.download');
+    Route::get('/employee-report/download', [ReportController::class, 'downloadExcel']);
 });
-// Login
 Route::post('/login', [AuthController::class, 'login']);

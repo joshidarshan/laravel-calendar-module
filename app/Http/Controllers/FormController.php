@@ -53,18 +53,25 @@ class FormController extends Controller
 
         return DataTables::of($forms)
             ->addColumn('actions', function ($form) {
-                return '
-                    <a href="'.route('form-fields.index', $form->id).'" class="btn btn-sm btn-warning me-1">
-                        <i class="bi bi-ui-checks-grid"></i> Fields
-                    </a>
-                    <a href="'.route('forms.edit', $form->id).'" class="btn btn-sm btn-info me-1">
-                        <i class="bi bi-pencil"></i> Edit
-                    </a>
-                    <button onclick="deleteForm('.$form->id.')" class="btn btn-sm btn-danger">
-                        <i class="bi bi-trash"></i> Delete
-                    </button>
-                ';
-            })
+    return '
+        <a href="'.route('forms.entries', $form->id).'" class="btn btn-sm btn-secondary me-1">
+            <i class="bi bi-list-ul"></i> Entries
+        </a>
+
+        <a href="'.route('form-fields.index', $form->id).'" class="btn btn-sm btn-warning me-1">
+            <i class="bi bi-ui-checks-grid"></i> Fields
+        </a>
+
+        <a href="'.route('forms.edit', $form->id).'" class="btn btn-sm btn-info me-1">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+
+        <button onclick="deleteForm('.$form->id.')" class="btn btn-sm btn-danger">
+            <i class="bi bi-trash"></i> Delete
+        </button>
+    ';
+})
+
             ->rawColumns(['actions'])
             ->make(true);
     }

@@ -2,34 +2,51 @@
 
 namespace App\Exports;
 
-use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class EmployeeReportExport implements FromCollection, WithHeadings
+class EmployeeReportExport implements FromArray, WithHeadings, WithMapping, ShouldAutoSize
 {
-    protected $data;
+    protected $rows;
 
-    public function __construct(array $data)
+    public function __construct(array $rows)
     {
-        $this->data = $data;
+        $this->rows = $rows;
     }
 
-    public function collection()
+    /** Data */
+    public function array(): array
     {
-        return collect($this->data);
+        return $this->rows;
     }
 
+    /** Excel Header Row */
     public function headings(): array
     {
         return [
             'Employee',
             'Total',
-            'Score (%)',
+            'Score',
             'Pending',
             'Progress',
             'Completed',
-            'Overdue'
+            'Overdue',
+        ];
+    }
+
+    /** Row Mapping (FORMAT HERE) */
+    public function map($row): array
+    {
+        return [
+            $row['employee'],
+            $row['total'],
+            $row['score'] . '%',   // ⭐ PERCENT FORMAT
+            $row['pending'],
+            $row['progress'],
+            $row['completed'],
+            $row['overdue'],
         ];
     }
 }

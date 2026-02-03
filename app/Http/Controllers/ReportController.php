@@ -145,11 +145,11 @@ class ReportController extends Controller
                 $map[$uid] = [
                     'employee' => $task->assignedUser->name ?? 'N/A',
                     'total' => 0,
+                    'score' => 0,
                     'pending' => 0,
                     'progress' => 0,
                     'completed' => 0,
                     'overdue' => 0,
-                    'score' => 0,
                 ];
             }
 
@@ -180,11 +180,11 @@ class ReportController extends Controller
                 $map[$id] = [
                     'employee' => $name,
                     'total' => 0,
+                    'score' => 0,
                     'pending' => 0,
                     'progress' => 0,
                     'completed' => 0,
                     'overdue' => 0,
-                    'score' => 0,
                 ];
             }
         }

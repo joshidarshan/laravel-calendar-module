@@ -3,6 +3,7 @@
 @section('topbar-title', 'Employee Report')
 
 @section('topbar-buttons')
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
@@ -10,6 +11,11 @@
         .view-group {
             padding-left: 20px;
             padding-top: 14px;
+        }
+
+        #reportTable th:first-child,
+        #reportTable td:first-child {
+            text-align: left !important;
         }
     </style>
 
@@ -36,15 +42,6 @@
         </div>
 
     </div>
-    <script>
-document.getElementById('btnDownload').addEventListener('click', function (e) {
-    e.preventDefault();
-
-    const url = `{{ route('employee.report.download') }}?filter=${filter}&offset=${offset}`;
-    window.location.href = url;
-});
-</script>
-
 @endsection
 
 @section('content')
@@ -69,6 +66,7 @@ document.getElementById('btnDownload').addEventListener('click', function (e) {
             </thead>
         </table>
     </div>
+
 
     <div id="chartView" class="d-none">
         <div class="row g-3 mb-3">
@@ -110,17 +108,44 @@ document.getElementById('btnDownload').addEventListener('click', function (e) {
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
 
-<script>
-document.getElementById('btnDownload').addEventListener('click', function (e) {
-    e.preventDefault();
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
-    // current filter value already exists in your JS
-    const url = `{{ route('employee.report.download') }}?filter=${filter}`;
+    <script>
+        document.getElementById('btnDownload').addEventListener('click', async function(e) {
+            e.preventDefault();
 
-    window.location.href = url; // triggers Excel download
-});
-</script>
+            const token = localStorage.getItem('auth_token'); // Sanctum token
+            const url = `/api/employee-report/download?filter=${filter}&offset=${offset}`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                }
+            });
+
+            if (!response.ok) {
+                alert('Failed to download report');
+                return;
+            }
+
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `employee-report-${filter}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+        });
+    </script>
 
     <script>
         let filter = 'day';
@@ -170,29 +195,30 @@ document.getElementById('btnDownload').addEventListener('click', function (e) {
 
 
         function renderTable(data) {
-            window.currentData = data; // store for charts
-            let tbody = `<tbody>`;
+            window.currentData = data;
+
+            dataTable.clear();
 
             if (!data.length) {
-                tbody += `<tr><td colspan="7" class="text-muted py-3">No data found</td></tr>`;
-            } else {
-                data.forEach(r => {
-                    tbody += `<tr>
-                <td class="text-start">${r.employee}</td>
-                <td>${r.total}</td>
-                <td>${r.score}%</td>
-                <td>${r.pending}</td>
-                <td>${r.progress}</td>
-                <td>${r.completed}</td>
-                <td>${r.overdue}</td>
-            </tr>`;
-                });
+                dataTable.draw();
+                return;
             }
 
-            tbody += `</tbody>`;
-            table.querySelector('tbody')?.remove();
-            table.insertAdjacentHTML('beforeend', tbody);
+            data.forEach(r => {
+                dataTable.row.add([
+                    r.employee,
+                    r.total,
+                    r.score + '%',
+                    r.pending,
+                    r.progress,
+                    r.completed,
+                    r.overdue
+                ]);
+            });
+
+            dataTable.draw();
         }
+
 
         function shortName(name) {
             if (!name) return '';
@@ -417,6 +443,22 @@ document.getElementById('btnDownload').addEventListener('click', function (e) {
                 }
             });
         }
+        let dataTable;
+
+        $(document).ready(function() {
+            dataTable = $('#reportTable').DataTable({
+                paging: true,
+                pageLength: 7,
+                lengthChange: false,
+                searching: true,
+                ordering: true,
+                info: true,
+                autoWidth: false,
+                language: {
+                    emptyTable: "No data available"
+                }
+            });
+        });
 
         // ---------------- Initial load ----------------
         loadReport();
