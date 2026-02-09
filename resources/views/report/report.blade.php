@@ -3,7 +3,6 @@
 @section('topbar-title', 'Employee Report')
 
 @section('topbar-buttons')
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
@@ -11,11 +10,6 @@
         .view-group {
             padding-left: 20px;
             padding-top: 14px;
-        }
-
-        #reportTable th:first-child,
-        #reportTable td:first-child {
-            text-align: left !important;
         }
     </style>
 
@@ -67,7 +61,6 @@
         </table>
     </div>
 
-
     <div id="chartView" class="d-none">
         <div class="row g-3 mb-3">
             <div class="col-md-4">
@@ -108,43 +101,39 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
-
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
     <script>
-        document.getElementById('btnDownload').addEventListener('click', async function(e) {
-            e.preventDefault();
+        document.getElementById('btnDownload').addEventListener('click', async function (e) {
+    e.preventDefault();
 
-            const token = localStorage.getItem('auth_token'); // Sanctum token
-            const url = `/api/employee-report/download?filter=${filter}&offset=${offset}`;
+    const token = localStorage.getItem('auth_token'); // Sanctum token
+    const url = `/api/employee-report/download?filter=${filter}&offset=${offset}`;
 
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                }
-            });
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+    });
 
-            if (!response.ok) {
-                alert('Failed to download report');
-                return;
-            }
+    if (!response.ok) {
+        alert('Failed to download report'); 
+        return;
+    }
 
-            const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
 
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = `employee-report-${filter}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `employee-report-${filter}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
 
-            a.remove();
-            window.URL.revokeObjectURL(downloadUrl);
-        });
+    a.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+});
     </script>
 
     <script>
@@ -195,30 +184,29 @@
 
 
         function renderTable(data) {
-            window.currentData = data;
-
-            dataTable.clear();
+            window.currentData = data; // store for charts
+            let tbody = `<tbody>`;
 
             if (!data.length) {
-                dataTable.draw();
-                return;
+                tbody += `<tr><td colspan="7" class="text-muted py-3">No data found</td></tr>`;
+            } else {
+                data.forEach(r => {
+                    tbody += `<tr>
+                <td class="text-start">${r.employee}</td>
+                <td>${r.total}</td>
+                <td>${r.score}%</td>
+                <td>${r.pending}</td>
+                <td>${r.progress}</td>
+                <td>${r.completed}</td>
+                <td>${r.overdue}</td>
+            </tr>`;
+                });
             }
 
-            data.forEach(r => {
-                dataTable.row.add([
-                    r.employee,
-                    r.total,
-                    r.score + '%',
-                    r.pending,
-                    r.progress,
-                    r.completed,
-                    r.overdue
-                ]);
-            });
-
-            dataTable.draw();
+            tbody += `</tbody>`;
+            table.querySelector('tbody')?.remove();
+            table.insertAdjacentHTML('beforeend', tbody);
         }
-
 
         function shortName(name) {
             if (!name) return '';
@@ -443,24 +431,8 @@
                 }
             });
         }
-        let dataTable;
 
-        $(document).ready(function() {
-            dataTable = $('#reportTable').DataTable({
-                paging: true,
-                pageLength: 7,
-                lengthChange: false,
-                searching: true,
-                ordering: true,
-                info: true,
-                autoWidth: false,
-                language: {
-                    emptyTable: "No data available"
-                }
-            });
-        });
-
-        // ---------------- Initial load ----------------
+ 
         loadReport();
     </script>
-@endpush
+@endpush 
